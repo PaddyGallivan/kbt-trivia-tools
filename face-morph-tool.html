@@ -1,538 +1,325 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KBT Face Morph Tool</title>
-<link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Londrina+Solid:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
+<title>KBT Face Morph Tool v5 — AI-Powered</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: 'Londrina Solid', cursive;
-  background: #f5f5f5;
-  background-image: linear-gradient(0deg,rgba(200,200,200,.18) 1px,transparent 1px),
-                    linear-gradient(90deg,rgba(200,200,200,.18) 1px,transparent 1px);
-  background-size: 40px 40px;
-  min-height: 100vh;
-  padding: 32px 20px 60px;
-}
-.container { max-width: 1020px; margin: 0 auto; }
-header { text-align:center; margin-bottom:32px; }
-.logo { font-family:'Bowlby One SC',cursive; font-size:2.2em; color:#222; }
-.logo span { color:#9c27b0; }
-.subtitle { font-size:1.05em; color:#999; margin-top:4px; }
-.divider { width:50px; height:4px; background:#9c27b0; margin:12px auto 0; border-radius:2px; }
-
-.upload-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:22px; }
-.face-card { background:#fff; border:2px solid #e0e0e0; border-radius:16px; padding:18px; transition:border-color .2s; }
-.face-card.ok { border-color:#9c27b0; }
-.face-label { font-family:'Bowlby One SC',cursive; font-size:.9em; color:#9c27b0; margin-bottom:10px; }
-.drop-zone {
-  border:2px dashed #ddd; border-radius:12px; height:210px;
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .2s; overflow:hidden; position:relative; background:#fafafa;
-}
-.drop-zone:hover,.drop-zone.over { border-color:#9c27b0; background:#f3e5f5; }
-.drop-zone img { width:100%; height:100%; object-fit:contain; position:absolute; top:0; left:0; }
-.hint { color:#bbb; font-size:.88em; text-align:center; pointer-events:none; }
-.hint span { font-size:2em; display:block; margin-bottom:6px; }
-input[type=file] { display:none; }
-.name-input {
-  width:100%; margin-top:10px; padding:9px 13px;
-  border:2px solid #e0e0e0; border-radius:10px;
-  font-family:'Londrina Solid',cursive; font-size:1em; color:#333; outline:none;
-  transition:border-color .2s;
-}
-.name-input:focus { border-color:#9c27b0; }
-.name-input::placeholder { color:#ccc; }
-
-.controls { display:flex; align-items:center; gap:14px; margin-bottom:24px; }
-.btn-gen {
-  background:#9c27b0; color:#fff; border:none;
-  padding:13px 38px; border-radius:50px;
-  font-family:'Bowlby One SC',cursive; font-size:1.05em; letter-spacing:1px;
-  cursor:pointer; transition:all .2s;
-}
-.btn-gen:hover:not(:disabled) { background:#7b1fa2; transform:translateY(-2px); }
-.btn-gen:disabled { opacity:.45; cursor:not-allowed; }
-.btn-dl {
-  background:#fff; color:#9c27b0; border:2px solid #9c27b0;
-  padding:11px 26px; border-radius:50px;
-  font-family:'Bowlby One SC',cursive; font-size:.88em;
-  cursor:pointer; transition:all .2s;
-}
-.btn-dl:hover { background:#f3e5f5; }
-
-.prog-box {
-  background:#fff; border:2px solid #e0e0e0; border-radius:14px;
-  padding:18px 22px; margin-bottom:22px; display:none;
-}
-.prog-box.on { display:block; }
-.prog-title { font-family:'Bowlby One SC',cursive; font-size:.92em; color:#9c27b0; margin-bottom:8px; }
-.prog-track { background:#f0e4f7; border-radius:99px; height:8px; overflow:hidden; }
-.prog-fill { height:100%; background:linear-gradient(90deg,#9c27b0,#ce93d8); border-radius:99px; transition:width .35s; width:0; }
-.prog-msg { font-size:.87em; color:#777; margin-top:7px; min-height:1.2em; }
-.err-msg { font-size:.87em; color:#c62828; margin-top:6px; font-weight:bold; }
-
-.preview-box { display:none; }
-.preview-box.on { display:block; }
-.tab-row { display:flex; gap:8px; margin-bottom:14px; }
-.tab {
-  padding:7px 22px; border-radius:50px; border:2px solid #9c27b0;
-  background:#fff; color:#9c27b0;
-  font-family:'Bowlby One SC',cursive; font-size:.88em; cursor:pointer; transition:all .2s;
-}
-.tab.on { background:#9c27b0; color:#fff; }
-.canvas-wrap { background:#fff; border:2px solid #e0e0e0; border-radius:14px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.08); }
-.canvas-wrap canvas { display:block; width:100%; height:auto; }
-.dl-row { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
+  :root {
+    --purple: #5b21b6;
+    --teal: #0f766e;
+    --teal-2: #2dd4bf;
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h1 {
+    font-family: 'Bowlby One SC', cursive;
+    font-size: 40px;
+    color: var(--teal-2);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .sub { text-align: center; color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .face-box {
+    border: 2px dashed rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    min-height: 280px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: border-color 0.2s;
+  }
+  .face-box:hover { border-color: var(--teal-2); }
+  .face-box img { max-width: 100%; max-height: 240px; border-radius: 6px; margin-bottom: 8px; }
+  .name-input {
+    margin-top: 10px; padding: 8px 12px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.2);
+    color: white; font-size: 14px; width: 100%;
+  }
+  .options {
+    display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; align-items: center;
+  }
+  .options label { font-size: 13px; color: var(--muted); }
+  .options select {
+    padding: 6px 10px; border-radius: 6px; background: rgba(0,0,0,0.2);
+    color: white; border: 1px solid rgba(255,255,255,0.15); font-size: 13px;
+  }
+  .btn {
+    padding: 14px 28px; border-radius: 10px; border: none; cursor: pointer;
+    font-size: 16px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--teal), var(--teal-2));
+    color: white; width: 100%;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-dl {
+    background: rgba(255,255,255,0.1); color: white;
+    padding: 10px 18px; margin-top: 10px;
+  }
+  .progress {
+    margin: 16px 0; padding: 12px 16px; border-radius: 8px;
+    background: rgba(45,212,191,0.08); border-left: 3px solid var(--teal-2);
+    font-size: 13px; display: none;
+  }
+  .progress.active { display: block; }
+  .result {
+    display: none; text-align: center; padding: 24px;
+  }
+  .result.active { display: block; }
+  .result img { max-width: 100%; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+  .slides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+  .slide-preview { background: white; border-radius: 8px; padding: 8px; }
+  .slide-preview canvas { width: 100%; display: block; }
+  .spec-note {
+    font-size: 12px; color: var(--muted); margin-top: 12px; padding: 12px;
+    background: rgba(0,0,0,0.2); border-radius: 6px; line-height: 1.6;
+  }
+  .spec-note strong { color: var(--teal-2); }
 </style>
 </head>
 <body>
 <div class="container">
+  <h1>Face Morph</h1>
+  <div class="sub">Powered by Easel AI via fal.ai — professional face-swap model</div>
 
-<header>
-  <div class="logo">KBT <span>Face Morph</span></div>
-  <div class="subtitle">Precisely aligned blend — players guess both people</div>
-  <div class="divider"></div>
-</header>
+  <div class="panel">
+    <div class="inputs">
+      <div>
+        <div class="face-box" id="box1" onclick="document.getElementById('file1').click()">
+          <input type="file" id="file1" accept="image/*" style="display:none" onchange="loadFile(this, 1)">
+          <div id="placeholder1"><div style="font-size:48px">👤</div><div style="margin-top:8px">Click to upload Face A</div></div>
+        </div>
+        <input class="name-input" id="name1" placeholder="Name (e.g. Sean Connery)">
+      </div>
+      <div>
+        <div class="face-box" id="box2" onclick="document.getElementById('file2').click()">
+          <input type="file" id="file2" accept="image/*" style="display:none" onchange="loadFile(this, 2)">
+          <div id="placeholder2"><div style="font-size:48px">👤</div><div style="margin-top:8px">Click to upload Face B</div></div>
+        </div>
+        <input class="name-input" id="name2" placeholder="Name (e.g. Daniel Craig)">
+      </div>
+    </div>
 
-<div class="upload-row">
-  <div class="face-card" id="card1">
-    <div class="face-label">Face 1 — Base Face</div>
-    <div class="drop-zone" id="zone1"><div class="hint"><span>📷</span>Drop photo or click</div></div>
-    <input type="file" id="file1" accept="image/*">
-    <input class="name-input" id="name1" placeholder="Name (e.g. Sean Connery)">
+    <div class="options">
+      <label>Gender:
+        <select id="gender">
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+      </label>
+      <label>Hair style:
+        <select id="workflow">
+          <option value="target_hair">Keep Face A's hair</option>
+          <option value="user_hair">Use Face B's hair</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="spec-note">
+      <strong>How it works:</strong> Uploads both faces to fal.ai's Easel AI face-swap model.
+      The model detects facial landmarks, matches angle/lighting/skin tone automatically,
+      and produces a seamless blend — sharp features, no blur, professional-quality output.
+      Takes ~8-15 seconds. Output is a single morph image you can drop into the question slide.
+    </div>
+
+    <div class="progress" id="progress">Initialising…</div>
+    <button class="btn btn-primary" id="btnGo" disabled onclick="generate()">Generate Morph</button>
   </div>
-  <div class="face-card" id="card2">
-    <div class="face-label">Face 2 — Blend Face</div>
-    <div class="drop-zone" id="zone2"><div class="hint"><span>📷</span>Drop photo or click</div></div>
-    <input type="file" id="file2" accept="image/*">
-    <input class="name-input" id="name2" placeholder="Name (e.g. Daniel Craig)">
-    <button id="aiMorphHintBtn" onclick="generateMorphHint()" style="margin-top:8px;background:linear-gradient(135deg,#0f766e,#2dd4bf);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;letter-spacing:0.5px;">🤖 AI Generate Morph Clue for Host</button>
-    <div id="aiMorphPanel" style="display:none;margin-top:10px;background:#0a1818;border:1px solid #2dd4bf;border-radius:10px;padding:14px;font-size:14px;color:#99f6e4;line-height:1.6;font-style:italic;text-align:center;"></div>
+
+  <div class="result" id="result">
+    <h2 style="margin-bottom:16px">Morph Result</h2>
+    <img id="resultImg" alt="Morph">
+    <button class="btn btn-dl" onclick="downloadResult()">⬇ Download Morph</button>
+
+    <div class="slides">
+      <div>
+        <h3 style="font-size:14px;color:var(--muted);margin-bottom:8px">Slide A — Question</h3>
+        <div class="slide-preview"><canvas id="slideA"></canvas></div>
+        <button class="btn btn-dl" onclick="downloadSlide('A')">⬇ Download Slide A</button>
+      </div>
+      <div>
+        <h3 style="font-size:14px;color:var(--muted);margin-bottom:8px">Slide B — Answer</h3>
+        <div class="slide-preview"><canvas id="slideB"></canvas></div>
+        <button class="btn btn-dl" onclick="downloadSlide('B')">⬇ Download Slide B</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="controls">
-  <button class="btn-gen" id="btnGen" disabled>Generate Morph</button>
-</div>
-
-<div class="prog-box" id="progBox">
-  <div class="prog-title" id="progTitle">Working…</div>
-  <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
-  <div class="prog-msg" id="progMsg"></div>
-  <div class="err-msg" id="errMsg"></div>
-</div>
-
-<div class="preview-box" id="previewBox">
-  <div class="tab-row">
-    <button class="tab on" id="tabA" onclick="showSlide('A')">Slide A — Question</button>
-    <button class="tab"    id="tabB" onclick="showSlide('B')">Slide B — Answer</button>
-  </div>
-  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
-  <div class="dl-row">
-    <button class="btn-dl" onclick="dl('A')">⬇ Download Slide A</button>
-    <button class="btn-dl" onclick="dl('B')">⬇ Download Slide B</button>
-  </div>
-</div>
-
-</div>
 <script>
-// ─── Globals ─────────────────────────────────────────────────────────────────
-let raw1=null, raw2=null;      // base64 originals
-let orig1=null, orig2=null;    // HTMLImageElement originals
-let slideA=null, slideB=null;
-let apiReady=false;
+const SW = 1920, SH = 1080;
+const PURPLE = '#5b21b6';
+let img1b64 = null, img2b64 = null;
+let morphImgObj = null, img1Obj = null, img2Obj = null;
 
-const MODEL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model';
-const PURPLE = '#9c27b0';
-const SW=1920, SH=1080;
-
-// ─── Drop zones ──────────────────────────────────────────────────────────────
-function zone(zoneId, fileId, cardId, slot) {
-  const z=document.getElementById(zoneId);
-  const f=document.getElementById(fileId);
-  const c=document.getElementById(cardId);
-  z.onclick=()=>f.click();
-  z.ondragover=e=>{e.preventDefault();z.classList.add('over');};
-  z.ondragleave=()=>z.classList.remove('over');
-  z.ondrop=e=>{e.preventDefault();z.classList.remove('over');if(e.dataTransfer.files[0])read(e.dataTransfer.files[0]);};
-  f.onchange=()=>{if(f.files[0])read(f.files[0]);};
-  function read(file){
-    const r=new FileReader();
-    r.onload=e=>{
-      const url=e.target.result;
-      if(slot===1)raw1=url;else raw2=url;
-      z.innerHTML='';
-      const img=document.createElement('img');
-      img.src=url; z.appendChild(img);
-      c.classList.add('ok');
-      // Preload original image element for landmark detection
-      const imgEl=new Image(); imgEl.src=url;
-      if(slot===1)orig1=imgEl;else orig2=imgEl;
+function loadFile(input, n) {
+  const f = input.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const box = document.getElementById('box'+n);
+    const img = new Image();
+    img.onload = () => {
+      if (n === 1) { img1b64 = e.target.result; img1Obj = img; }
+      else { img2b64 = e.target.result; img2Obj = img; }
+      box.innerHTML = `<img src="${e.target.result}" alt="Face ${n}">`;
+      box.onclick = () => document.getElementById('file'+n).click();
+      // Re-insert hidden input
+      const fi = document.createElement('input');
+      fi.type = 'file'; fi.id = 'file'+n; fi.accept = 'image/*';
+      fi.style.display = 'none';
+      fi.onchange = function() { loadFile(this, n); };
+      box.appendChild(fi);
       check();
     };
-    r.readAsDataURL(file);
+    img.src = e.target.result;
+  };
+  r.readAsDataURL(f);
+}
+
+function check() {
+  document.getElementById('btnGo').disabled = !(img1b64 && img2b64);
+}
+
+function progress(msg) {
+  const p = document.getElementById('progress');
+  p.textContent = msg;
+  p.classList.add('active');
+}
+
+async function generate() {
+  document.getElementById('btnGo').disabled = true;
+  document.getElementById('result').classList.remove('active');
+  progress('Uploading faces to fal.ai…');
+
+  const gender = document.getElementById('gender').value;
+  const workflow = document.getElementById('workflow').value;
+
+  try {
+    progress('Running face-swap model (8-15s)…');
+    const res = await fetch('/api/fal-faceswap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base_image: img1b64,
+        reference_image: img2b64,
+        gender, workflow,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Morph failed');
+
+    progress('Loading morph image…');
+    morphImgObj = new Image();
+    morphImgObj.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+      morphImgObj.onload = resolve;
+      morphImgObj.onerror = reject;
+      morphImgObj.src = data.image_url;
+    });
+
+    document.getElementById('resultImg').src = data.image_url;
+    document.getElementById('result').classList.add('active');
+    document.getElementById('progress').classList.remove('active');
+    document.getElementById('btnGo').disabled = false;
+
+    renderSlides();
+  } catch (e) {
+    progress('❌ ' + e.message);
+    document.getElementById('btnGo').disabled = false;
   }
 }
-zone('zone1','file1','card1',1);
-zone('zone2','file2','card2',2);
-function check(){document.getElementById('btnGen').disabled=!(raw1&&raw2);}
 
-// ─── face-api: load detector + 68-landmark model ──────────────────────────────
-async function loadApi(){
-  if(apiReady)return;
-  await Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL),
-    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL),
-  ]);
-  apiReady=true;
+// ─── Slide rendering ────────────────────────────────────────────────
+function bg(ctx) {
+  const g = ctx.createLinearGradient(0, 0, 0, SH);
+  g.addColorStop(0, '#0f172a'); g.addColorStop(1, '#1e293b');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
 }
 
-async function getLandmarks(imgEl){
-  try{
-    const opts=new faceapi.TinyFaceDetectorOptions({inputSize:128,scoreThreshold:0.05});
-    const r=await faceapi.detectSingleFace(imgEl,opts).withFaceLandmarks(true);
-    return r?r.landmarks:null;
-  }catch(e){return null;}
-}
-
-// ─── Compute similarity transform (rotation + scale + translation) ────────────
-function eyeCenter(pts){
-  return {x:pts.reduce((s,p)=>s+p.x,0)/pts.length, y:pts.reduce((s,p)=>s+p.y,0)/pts.length};
-}
-
-function computeTransform(lm1, lm2){
-  // Face 1 eye centres
-  const L1=eyeCenter(lm1.getLeftEye());
-  const R1=eyeCenter(lm1.getRightEye());
-  // Face 2 eye centres
-  const L2=eyeCenter(lm2.getLeftEye());
-  const R2=eyeCenter(lm2.getRightEye());
-
-  // Rotation: angle between eye lines
-  const a1=Math.atan2(R1.y-L1.y, R1.x-L1.x);
-  const a2=Math.atan2(R2.y-L2.y, R2.x-L2.x);
-  const rot=a1-a2;
-
-  // Scale: match eye-to-eye distance
-  const d1=Math.hypot(R1.x-L1.x,R1.y-L1.y);
-  const d2=Math.hypot(R2.x-L2.x,R2.y-L2.y);
-  const sc=d1/d2;
-
-  // Translation: after rotate+scale, map Face 2 eye midpoint → Face 1 eye midpoint
-  const mid1={x:(L1.x+R1.x)/2, y:(L1.y+R1.y)/2};
-  const mid2={x:(L2.x+R2.x)/2, y:(L2.y+R2.y)/2};
-  const cos=Math.cos(rot), sin=Math.sin(rot);
-  const tx=mid1.x - sc*(mid2.x*cos - mid2.y*sin);
-  const ty=mid1.y - sc*(mid2.x*sin + mid2.y*cos);
-
-  return {rot,sc,tx,ty, cos,sin, L1,R1, mid1};
-}
-
-// ─── rembg API ────────────────────────────────────────────────────────────────
-async function rembg(b64){
-  const r=await fetch('/api/fal-rembg',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({image:b64})
-  });
-  const d=await r.json();
-  if(!r.ok||d.error)throw new Error(d.error||'rembg failed');
-  return d.url;
-}
-
-function loadImg(src){
-  return new Promise((res,rej)=>{
-    const i=new Image(); i.crossOrigin='anonymous';
-    i.onload=()=>res(i); i.onerror=rej; i.src=src;
-  });
-}
-
-// ─── Create aligned Face 2 canvas ─────────────────────────────────────────────
-// Applies rotation + scale + translation so Face 2 eyes sit exactly on Face 1 eyes
-function alignFace(cut2Img, transform, W, H){
-  const {sc,rot,tx,ty,cos,sin}=transform;
-  const c=document.createElement('canvas');
-  c.width=W; c.height=H;
-  const ctx=c.getContext('2d');
-  // Similarity transform matrix:  [sc*cos, sc*sin, -sc*sin, sc*cos, tx, ty]
-  ctx.setTransform(sc*cos, sc*sin, -sc*sin, sc*cos, tx, ty);
-  ctx.drawImage(cut2Img,0,0,cut2Img.naturalWidth,cut2Img.naturalHeight);
-  ctx.setTransform(1,0,0,1,0,0);
-  return c;
-}
-
-// ─── Build morph composite ────────────────────────────────────────────────────
-// Pixel-level blend: where both faces have pixels, blend RGB 50/50 but force
-// alpha to FULL from Face 1's mask — prevents the ghostly transparent look.
-// Matches the numpy approach proven in the Python test.
-function buildMorph(cut1Img, alignedFace2Canvas, W, H){
-  const c=document.createElement('canvas');
-  c.width=W; c.height=H;
-  const ctx=c.getContext('2d');
-
-  // Get Face 1 pixels
-  const tmp1=document.createElement('canvas'); tmp1.width=W; tmp1.height=H;
-  tmp1.getContext('2d').drawImage(cut1Img,0,0,W,H);
-  const d1=tmp1.getContext('2d').getImageData(0,0,W,H).data;
-
-  // Get aligned Face 2 pixels
-  const d2=alignedFace2Canvas.getContext('2d').getImageData(0,0,W,H).data;
-
-  // Build output pixel array
-  const out=ctx.createImageData(W,H);
-  const od=out.data;
-
-  for(let i=0;i<W*H*4;i+=4){
-    const a1=d1[i+3], a2=d2[i+3];
-    if(a1>0 && a2>0){
-      // Both faces overlap: blend RGB 50/50, alpha solid from Face 1's shape
-      od[i]  =(d1[i]  +d2[i])  >>1;
-      od[i+1]=(d1[i+1]+d2[i+1])>>1;
-      od[i+2]=(d1[i+2]+d2[i+2])>>1;
-      od[i+3]=a1;            // full opacity — no transparency!
-    } else if(a1>0){
-      // Face 1 only
-      od[i]=d1[i]; od[i+1]=d1[i+1]; od[i+2]=d1[i+2]; od[i+3]=a1;
-    } else if(a2>0){
-      // Face 2 edge peeking out — subtle at 35%
-      od[i]=d2[i]; od[i+1]=d2[i+1]; od[i+2]=d2[i+2]; od[i+3]=Math.round(a2*0.35);
-    }
-    // else both zero → transparent background
-  }
-
-  ctx.putImageData(out,0,0);
-  return c;
-}
-
-// ─── Sticker: white stroke border + drop shadow ───────────────────────────────
-function sticker(src, border=14){
-  const sW=src.width||src.naturalWidth;
-  const sH=src.height||src.naturalHeight;
-  const pad=border+36;
-  const W=sW+pad*2, H=sH+pad*2;
-
-  // White silhouette
-  const sil=document.createElement('canvas');
-  sil.width=sW; sil.height=sH;
-  const sx=sil.getContext('2d');
-  sx.drawImage(src,0,0,sW,sH);
-  sx.globalCompositeOperation='source-in';
-  sx.fillStyle='white'; sx.fillRect(0,0,sW,sH);
-
-  // Draw silhouette at many angular offsets → filled white border
-  const brd=document.createElement('canvas');
-  brd.width=W; brd.height=H;
-  const bx=brd.getContext('2d');
-  for(let i=0;i<32;i++){
-    const a=(i/32)*Math.PI*2;
-    bx.drawImage(sil, pad+Math.cos(a)*border, pad+Math.sin(a)*border);
-  }
-  // Original on top of border
-  bx.drawImage(src,pad,pad,sW,sH);
-
-  // Drop shadow
-  const fin=document.createElement('canvas');
-  fin.width=W; fin.height=H;
-  const fx=fin.getContext('2d');
-  fx.shadowColor='rgba(0,0,0,0.55)';
-  fx.shadowBlur=20; fx.shadowOffsetX=10; fx.shadowOffsetY=14;
-  fx.drawImage(brd,0,0);
-  return fin;
-}
-
-// ─── Slide rendering ──────────────────────────────────────────────────────────
-function bg(ctx){
-  ctx.fillStyle='#f7f7f7'; ctx.fillRect(0,0,SW,SH);
-  ctx.strokeStyle='rgba(180,180,180,0.22)'; ctx.lineWidth=1;
-  for(let x=0;x<=SW;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,SH);ctx.stroke();}
-  for(let y=0;y<=SH;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(SW,y);ctx.stroke();}
-}
-
-function fit(sw,sh,mw,mh){
-  const s=Math.min(mw/sw,mh/sh,1);
-  return{w:Math.round(sw*s),h:Math.round(sh*s)};
-}
-
-function rrect(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
-  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
-  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
-  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
-}
-
-function makeSlideA(stickerMorph){
-  const c=document.createElement('canvas');c.width=SW;c.height=SH;
-  const ctx=c.getContext('2d');
-  bg(ctx);
-  ctx.font='bold 84px "Bowlby One SC",cursive';
-  ctx.fillStyle=PURPLE; ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.fillText('Facemorph.',SW/2,42);
-  const{w,h}=fit(stickerMorph.width,stickerMorph.height,940,870);
-  ctx.drawImage(stickerMorph,(SW-w)/2,144+(870-h)/2,w,h);
-  return c;
-}
-
-function makeSlideB(sF1,sMorph,sF2,n1,n2){
-  const c=document.createElement('canvas');c.width=SW;c.height=SH;
-  const ctx=c.getContext('2d');
-  bg(ctx);
-  ctx.font='bold 84px "Bowlby One SC",cursive';
-  ctx.fillStyle=PURPLE; ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.fillText('Facemorph.',SW/2,42);
-
-  // Three slots
-  const slots=[{x:28,w:570},{x:662,w:600},{x:1316,w:570}];
-  const aH=748;
-  [sF1,sMorph,sF2].forEach((f,i)=>{
-    const{w,h}=fit(f.width,f.height,slots[i].w,aH);
-    ctx.drawImage(f, slots[i].x+(slots[i].w-w)/2, 148+(aH-h)/2, w, h);
-  });
-
-  // Answer box
-  const ans=`${n1||'Person 1'} & ${n2||'Person 2'}`;
-  ctx.font='bold 44px "Bowlby One SC",cursive'; ctx.textBaseline='middle';
-  const tw=ctx.measureText(ans).width;
-  const bw=tw+70,bh=68,bx=(SW-bw)/2,by=940;
+function sticker(ctx, img, x, y, maxW, maxH, border = 14) {
+  const scale = Math.min(maxW/img.width, maxH/img.height);
+  const w = img.width * scale, h = img.height * scale;
+  const dx = x + (maxW - w) / 2, dy = y + (maxH - h) / 2;
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,0.1)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
-  ctx.fillStyle='#fff';ctx.strokeStyle=PURPLE;ctx.lineWidth=3;
-  rrect(ctx,bx,by,bw,bh,10);ctx.fill();ctx.stroke();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 24; ctx.shadowOffsetY = 12;
+  // White border
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(dx - border, dy - border, w + border*2, h + border*2);
   ctx.restore();
-  ctx.fillStyle=PURPLE;ctx.textAlign='center';
-  ctx.fillText(ans,SW/2,by+bh/2);
-  return c;
+  ctx.drawImage(img, dx, dy, w, h);
 }
 
-// ─── Main generate ────────────────────────────────────────────────────────────
-function prog(pct,title,msg,err){
-  document.getElementById('progBox').classList.add('on');
-  document.getElementById('progFill').style.width=pct+'%';
-  if(title!==undefined)document.getElementById('progTitle').textContent=title;
-  if(msg!==undefined)document.getElementById('progMsg').textContent=msg;
-  document.getElementById('errMsg').textContent=err||'';
+function renderSlides() {
+  const n1 = document.getElementById('name1').value || 'Face A';
+  const n2 = document.getElementById('name2').value || 'Face B';
+
+  // Slide A
+  const cA = document.getElementById('slideA');
+  cA.width = SW; cA.height = SH;
+  const xA = cA.getContext('2d');
+  bg(xA);
+  xA.fillStyle = '#2dd4bf'; xA.font = 'bold 84px "Bowlby One SC", cursive';
+  xA.textAlign = 'center'; xA.fillText('FACE MORPH', SW/2, 110);
+  xA.fillStyle = '#e2e8f0'; xA.font = '32px Inter, sans-serif';
+  xA.fillText('Who are these two people?', SW/2, 170);
+  sticker(xA, morphImgObj, SW/2 - 380, 220, 760, 760);
+
+  // Slide B
+  const cB = document.getElementById('slideB');
+  cB.width = SW; cB.height = SH;
+  const xB = cB.getContext('2d');
+  bg(xB);
+  xB.fillStyle = '#fbbf24'; xB.font = 'bold 84px "Bowlby One SC", cursive';
+  xB.textAlign = 'center'; xB.fillText('THE ANSWER', SW/2, 110);
+  const tile = 440, gap = 60;
+  const tw = tile*3 + gap*2;
+  const x0 = (SW - tw) / 2, y0 = 220;
+  sticker(xB, img1Obj, x0, y0, tile, tile);
+  sticker(xB, morphImgObj, x0 + tile + gap, y0, tile, tile);
+  sticker(xB, img2Obj, x0 + (tile + gap)*2, y0, tile, tile);
+  xB.fillStyle = '#e2e8f0'; xB.font = 'bold 36px Inter, sans-serif';
+  xB.fillText(n1, x0 + tile/2, y0 + tile + 60);
+  xB.fillStyle = '#2dd4bf'; xB.fillText('MORPH', x0 + tile + gap + tile/2, y0 + tile + 60);
+  xB.fillStyle = '#e2e8f0'; xB.fillText(n2, x0 + (tile+gap)*2 + tile/2, y0 + tile + 60);
 }
 
-document.getElementById('btnGen').addEventListener('click',async()=>{
-  document.getElementById('btnGen').disabled=true;
-  document.getElementById('previewBox').classList.remove('on');
-  document.getElementById('errMsg').textContent='';
-  slideA=null;slideB=null;
-
-  try{
-    // 1. Load models
-    prog(5,'Loading 68-point landmark model…','');
-    await loadApi();
-
-    // 2. Wait for originals to be loaded (may already be ready)
-    await Promise.all([
-      new Promise(r=>{if(orig1.complete)r();else orig1.onload=r;}),
-      new Promise(r=>{if(orig2.complete)r();else orig2.onload=r;}),
-    ]);
-
-    // 3. Detect landmarks + remove backgrounds IN PARALLEL
-    prog(14,'Detecting face landmarks & removing backgrounds…','Running in parallel…');
-    const[[lm1,lm2],[url1,url2]]=await Promise.all([
-      Promise.all([getLandmarks(orig1),getLandmarks(orig2)]),
-      Promise.all([rembg(raw1),rembg(raw2)]),
-    ]);
-
-    if(!lm1||!lm2){
-      throw new Error('Could not detect face landmarks on one or both images. Use a clear, forward-facing photo.');
-    }
-
-    // 4. Load cutouts
-    prog(54,'Loading background-removed cutouts…','');
-    const[cut1,cut2]=await Promise.all([loadImg(url1),loadImg(url2)]);
-
-    // 5. Compute precise alignment transform from landmarks
-    prog(62,'Computing alignment (rotation + scale + translation)…','Mapping eye positions exactly…');
-    const transform=computeTransform(lm1,lm2);
-
-    // 6. Align Face 2 onto Face 1's coordinate space
-    prog(70,'Aligning faces…','');
-    const W=cut1.naturalWidth, H=cut1.naturalHeight;
-    const aligned2=alignFace(cut2,transform,W,H);
-
-    // 7. Build morph (50% blend)
-    prog(78,'Blending faces…','50% blend — both people's features visible…');
-    const morphC=buildMorph(cut1,aligned2,W,H);
-
-    // 8. Sticker effects
-    prog(86,'Applying white border & drop shadow…','');
-    const cut1C=document.createElement('canvas');
-    cut1C.width=W;cut1C.height=H;cut1C.getContext('2d').drawImage(cut1,0,0);
-    const cut2C=document.createElement('canvas');
-    cut2C.width=cut2.naturalWidth;cut2C.height=cut2.naturalHeight;
-    cut2C.getContext('2d').drawImage(cut2,0,0);
-
-    const sM=sticker(morphC,14);
-    const s1=sticker(cut1C,12);
-    const s2=sticker(cut2C,12);
-
-    // 9. Render slides
-    prog(93,'Rendering slides…','');
-    const n1=document.getElementById('name1').value.trim();
-    const n2=document.getElementById('name2').value.trim();
-    slideA=makeSlideA(sM);
-    slideB=makeSlideB(s1,sM,s2,n1,n2);
-
-    prog(100,'Done! ✓','');
-    showSlide('A');
-    document.getElementById('previewBox').classList.add('on');
-
-  }catch(e){
-    console.error(e);
-    prog(0,'Error','',e.message);
-  }finally{
-    document.getElementById('btnGen').disabled=false;
-  }
-});
-
-// ─── Preview / Download ───────────────────────────────────────────────────────
-function showSlide(w){
-  const src=w==='A'?slideA:slideB;
-  if(!src)return;
-  document.getElementById('tabA').classList.toggle('on',w==='A');
-  document.getElementById('tabB').classList.toggle('on',w==='B');
-  const cv=document.getElementById('cv');
-  cv.width=src.width;cv.height=src.height;
-  cv.getContext('2d').drawImage(src,0,0);
-}
-
-function dl(w){
-  const src=w==='A'?slideA:slideB;
-  if(!src)return;
-  const n1=document.getElementById('name1').value.trim()||'Person1';
-  const n2=document.getElementById('name2').value.trim()||'Person2';
-  const a=document.createElement('a');
-  a.href=src.toDataURL('image/png');
-  a.download=`Morph${w} ${n1} ${n2}.png`;
+function downloadResult() {
+  const a = document.createElement('a');
+  a.href = document.getElementById('resultImg').src;
+  a.download = 'kbt-morph.png';
   a.click();
 }
 
-async function generateMorphHint() {
-  const celeb1 = document.getElementById('name1').value.trim();
-  const celeb2 = document.getElementById('name2').value.trim();
-  if (!celeb1 || !celeb2) { alert('Enter both celebrity names first!'); return; }
-  const btn = document.getElementById('aiMorphHintBtn');
-  const panel = document.getElementById('aiMorphPanel');
-  btn.disabled = true; btn.textContent = '⏳ Writing clue...';
-  try {
-    const res = await fetch('/api/ai-text', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ tool: 'face-morph-hint', celeb1, celeb2 })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    panel.textContent = '"' + data.result + '"';
-    panel.style.display = 'block';
-  } catch(err) { alert('AI error: ' + err.message); }
-  finally { btn.disabled = false; btn.textContent = '🤖 AI Generate Morph Clue for Host'; }
+function downloadSlide(which) {
+  const c = document.getElementById('slide' + which);
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = `kbt-morph-slide-${which}.png`;
+  a.click();
 }
 </script>
 </body>
