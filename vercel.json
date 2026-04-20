@@ -1,4 +1,6 @@
 {
+  "version": 2,
+  "outputDirectory": ".",
   "env": {
     "NEXT_PUBLIC_MORRIS_URL": "https://huvfgenbcaiicatvtxak.supabase.co/functions/v1/morris",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc",
