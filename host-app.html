@@ -1411,10 +1411,85 @@
             border-radius: 24px;
             border: none;
         }
-    </style>
+    
+    .event-selector {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,.85); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .event-selector-card {
+      background: #1a1a2e; border: 2px solid #2C94C2;
+      border-radius: 16px; padding: 32px; width: 440px; max-width: 90vw;
+    }
+    .event-selector h2 { color: #E8A317; font-size: 24px; margin-bottom: 8px; font-family: inherit; }
+    .event-selector p { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+    .event-code-input {
+      width: 100%; background: #0d0d1a; border: 1px solid #2C94C2;
+      border-radius: 8px; padding: 12px 16px; color: #fff;
+      font-size: 18px; letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 12px; font-family: monospace;
+    }
+    .event-list { max-height: 200px; overflow-y: auto; margin-bottom: 16px; }
+    .event-list-item {
+      padding: 10px 12px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #2a2a4a; margin-bottom: 6px; color: #ccc; font-size: 13px;
+    }
+    .event-list-item:hover { background: #2a2a4a; color: #fff; border-color: #2C94C2; }
+    .event-list-item strong { color: #E8A317; display: block; }
+    .btn-launch { 
+      width: 100%; padding: 14px; background: #2C94C2; color: #fff;
+      border: none; border-radius: 8px; font-size: 16px; font-weight: 700;
+      cursor: pointer; letter-spacing: 1px;
+    }
+    .btn-launch:hover { background: #1a7fa8; }
+    .btn-demo { 
+      width: 100%; padding: 10px; background: transparent; color: #666;
+      border: 1px solid #333; border-radius: 8px; font-size: 13px;
+      cursor: pointer; margin-top: 8px;
+    }
+    .btn-demo:hover { color: #aaa; border-color: #555; }
+    #event-info-bar {
+      background: #0d0d1a; border-bottom: 1px solid #2C94C2;
+      padding: 8px 16px; font-size: 12px; color: #aaa;
+      display: flex; gap: 16px; align-items: center;
+    }
+    #event-info-bar strong { color: #E8A317; }
+    #event-info-bar .live-dot { 
+      width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+      animation: pulse 2s infinite; display: inline-block;
+    }
+
+</style>
     <script src="kbt-data.js"></script>
 </head>
 <body>
+
+<!-- EVENT SELECTOR MODAL -->
+<div class="event-selector" id="event-selector">
+  <div class="event-selector-card">
+    <h2>🎤 Know Brainer Trivia</h2>
+    <p>Enter tonight's event code or select from recent events below.</p>
+    <input class="event-code-input" id="event-code-input" placeholder="e.g. TUE-SPOTS-001" 
+      onkeydown="if(event.key==='Enter') launchEvent()">
+    <div class="event-list" id="recent-events-list">
+      <div style="color:#555;font-size:12px;padding:8px">Loading recent events…</div>
+    </div>
+    <button class="btn-launch" onclick="launchEvent()">▶ Launch Tonight's Quiz</button>
+    <button class="btn-demo" onclick="launchDemo()">Use demo questions (offline mode)</button>
+  </div>
+</div>
+
+<!-- EVENT INFO BAR -->
+<div id="event-info-bar" style="display:none">
+  <span class="live-dot"></span>
+  <span><strong id="info-event-code">—</strong></span>
+  <span id="info-event-date" style="color:#666"></span>
+  <span id="info-event-venue" style="color:#aaa"></span>
+  <span id="info-q-count" style="margin-left:auto;color:#2C94C2"></span>
+</div>
+
+
 
     <div class="host-login-gate" id="hostLoginGate">
         <div class="host-login-card">
@@ -2515,6 +2590,124 @@
             init();
             loadTeamsFromSupabase();
         });
-    </script>
+    
+
+// ── EVENT SELECTOR ────────────────────────────────────────────────────
+const SB_URL = 'https://huvfgenbcaiicatvtxak.supabase.co/rest/v1';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc';
+const SB_H = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
+
+async function loadRecentEvents() {
+  try {
+    const r = await fetch(`${SB_URL}/kbt_event?order=id.desc&limit=10&select=id,event_code,event_date,event_status,event_description`, { headers: SB_H });
+    const events = await r.json();
+    const list = document.getElementById('recent-events-list');
+    if (!events.length) { list.innerHTML = '<div style="color:#555;font-size:12px;padding:8px">No events found</div>'; return; }
+    list.innerHTML = events.map(e => `
+      <div class="event-list-item" onclick="selectEvent('${e.event_code || ''}')">
+        <strong>${e.event_code || 'No code'}</strong>
+        ${e.event_date ? e.event_date.substring(0,10) : ''} · ${e.event_description || ''}
+        <span style="float:right;font-size:11px;color:${e.event_status==='active'?'#22c55e':'#666'}">${e.event_status||'—'}</span>
+      </div>`).join('');
+    // Pre-fill with most recent active event
+    const active = events.find(e => e.event_status === 'active');
+    if (active?.event_code) document.getElementById('event-code-input').value = active.event_code;
+  } catch(e) { console.error('loadRecentEvents:', e); }
+}
+
+function selectEvent(code) {
+  document.getElementById('event-code-input').value = code;
+}
+
+async function launchEvent() {
+  const code = document.getElementById('event-code-input').value.trim().toUpperCase();
+  if (!code) { alert('Enter an event code'); return; }
+
+  localStorage.setItem('kbt_event_code', code);
+  
+  // Try to load quiz from kbt_quiz
+  try {
+    const evR = await fetch(`${SB_URL}/kbt_event?event_code=eq.${encodeURIComponent(code)}&limit=1&select=id,event_code,event_date,event_description,event_location_id`, { headers: SB_H });
+    const evs = await evR.json();
+    const ev = evs[0];
+    
+    if (ev) {
+      // Load quiz items linked to this event
+      const qR = await fetch(`${SB_URL}/kbt_quiz?quiz_event_id=eq.${ev.id}&order=quiz_item_round.asc,quiz_item_order.asc&select=id,quiz_item_round,quiz_item_number,quiz_points,quiz_qtype,quiz_question_id`, { headers: SB_H });
+      const quizItems = await qR.json();
+
+      if (quizItems.length > 0) {
+        // Load question details
+        const qids = [...new Set(quizItems.map(q => q.quiz_question_id).filter(Boolean))];
+        const qdR = await fetch(`${SB_URL}/kbt_question?id=in.(${qids.join(',')})&select=id,question_question_text,question_answer_text,question_fun_fact,question_host_notes`, { headers: SB_H });
+        const qDetails = await qdR.json();
+        const qMap = {};
+        qDetails.forEach(q => { qMap[q.id] = q; });
+
+        questions = quizItems.map((item, idx) => {
+          const q = qMap[item.quiz_question_id] || {};
+          return {
+            round: item.quiz_item_round || 1,
+            num: item.quiz_item_number || (idx + 1),
+            text: q.question_question_text || 'Question not found',
+            answer: q.question_answer_text || '—',
+            funFact: q.question_fun_fact || q.question_host_notes || '',
+            type: item.quiz_qtype || 'Standard',
+            points: item.quiz_points || 1,
+          };
+        });
+
+        document.getElementById('info-q-count').textContent = `${questions.length} questions loaded`;
+      } else {
+        // No quiz items — load from general questions bank
+        await loadQuestionsFromBank();
+      }
+
+      // Show event info
+      document.getElementById('info-event-code').textContent = ev.event_code || code;
+      document.getElementById('info-event-date').textContent = ev.event_date ? ev.event_date.substring(0,10) : '';
+      document.getElementById('info-event-venue').textContent = ev.event_description || '';
+    } else {
+      // Unknown event code — load from bank
+      document.getElementById('info-event-code').textContent = code + ' (custom)';
+      await loadQuestionsFromBank();
+    }
+  } catch(e) {
+    console.error('launchEvent error:', e);
+    await loadQuestionsFromBank();
+  }
+
+  document.getElementById('event-info-bar').style.display = 'flex';
+  document.getElementById('event-selector').style.display = 'none';
+  currentQuestion = 0;
+  updateQuestion();
+}
+
+async function loadQuestionsFromBank() {
+  // Load random mix from live questions table
+  const cats = ['Movies','Music','Sport','Geography & Travel','History & Politics','Science & Nature','General Knowledge'];
+  const qs = [];
+  for (let r = 1; r <= 6; r++) {
+    const cat = cats[(r-1) % cats.length];
+    const res = await fetch(`${SB_URL}/questions?status=eq.active&category=eq.${encodeURIComponent(cat)}&order=random()&limit=5&select=id,question,answer,fun_fact,category`, { headers: SB_H });
+    const rows = await res.json();
+    rows.forEach((q, i) => qs.push({ round: r, num: i+1, text: q.question, answer: q.answer, funFact: q.fun_fact || '', type: q.category }));
+  }
+  questions = qs;
+  document.getElementById('info-q-count').textContent = `${qs.length} questions from bank`;
+}
+
+function launchDemo() {
+  document.getElementById('event-info-bar').style.display = 'flex';
+  document.getElementById('info-event-code').textContent = 'DEMO MODE';
+  document.getElementById('event-selector').style.display = 'none';
+  currentQuestion = 0;
+  updateQuestion();
+}
+
+// Load recent events on page open
+loadRecentEvents();
+
+</script>
 </body>
 </html>
