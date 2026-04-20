@@ -4417,5 +4417,79 @@
             }
         }
     </script>
+<script>
+// ── LIVE DATA LOADER ────────────────────────────────────────────────
+const KBT_SB = 'https://huvfgenbcaiicatvtxak.supabase.co/rest/v1';
+const KBT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc';
+const KBT_H = { apikey: KBT_KEY, Authorization: 'Bearer ' + KBT_KEY };
+
+async function kbtFetch(path) {
+  const r = await fetch(KBT_SB + path, { headers: KBT_H });
+  return r.json();
+}
+
+async function loadLiveData() {
+  try {
+    // Load venues from kbt_loc
+    const locs = await kbtFetch('/kbt_loc?order=id&select=id,loc_fullname,loc_nickname,loc_town&limit=50');
+    if (locs.length) {
+      window._kbt_venues = locs.map(l => ({
+        id: l.id,
+        name: l.loc_fullname || l.loc_nickname || 'Unknown',
+        town: l.loc_town || '',
+        nickname: l.loc_nickname || ''
+      }));
+    }
+
+    // Load recent events
+    const events = await kbtFetch('/kbt_event?order=id.desc&limit=20&select=id,event_code,event_date,event_status,event_location_id');
+    if (events.length) window._kbt_events = events;
+
+    // Load current event from localStorage (set by host-app)
+    const eventCode = localStorage.getItem('kbt_event_code');
+    if (eventCode) {
+      const ev = (window._kbt_events || []).find(e => e.event_code === eventCode);
+      if (ev) {
+        // Load scores for this event from kbt_scores
+        const scores = await kbtFetch(`/kbt_scores?score_event_id=eq.${ev.id}&select=id,score_team_id,score_round,score_points,score_team_name`);
+        if (scores.length) {
+          // Build leaderboard
+          const teamTotals = {};
+          scores.forEach(s => {
+            const key = s.score_team_id || s.score_team_name;
+            if (!teamTotals[key]) teamTotals[key] = { name: s.score_team_name || key, total: 0 };
+            teamTotals[key].total += (s.score_points || 0);
+          });
+          window._kbt_leaderboard = Object.values(teamTotals).sort((a,b) => b.total - a.total);
+          renderLiveLeaderboard();
+        }
+      }
+    }
+
+    console.log('[KBT] Live data loaded:', { venues: locs.length, events: events.length });
+  } catch(e) {
+    console.log('[KBT] Live data load failed, using mock data:', e.message);
+  }
+}
+
+function renderLiveLeaderboard() {
+  const lb = window._kbt_leaderboard;
+  if (!lb?.length) return;
+  // Try to inject into any leaderboard container on the page
+  const container = document.querySelector('[data-leaderboard], #leaderboard, .leaderboard-list, .score-table tbody');
+  if (!container) return;
+  if (container.tagName === 'TBODY') {
+    container.innerHTML = lb.slice(0,10).map((t,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${t.name}</td>
+        <td style="font-weight:700;color:#2C94C2">${t.total}</td>
+      </tr>`).join('');
+  }
+}
+
+// Run on load
+document.addEventListener('DOMContentLoaded', loadLiveData);
+</script>
 </body>
 </html>
