@@ -1,306 +1,447 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Know Brainer Trivia — Trial Build. A standalone test environment for experimenting with the KBT platform.">
-    <meta name="theme-color" content="#000000">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
-    <title>KBT Trial - Know Brainer Trivia</title>
-    <style>
-        @font-face {
-            font-family: "VVDS Fifties";
-            src: url("https://knowbrainertrivia.com.au/fonts/VVDSFifties-SExpBold.woff2") format("woff2");
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KBT Command — Know Brainer Trivia</title>
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Londrina+Solid:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0d1a;--surface:#16162a;--card:#1e1e35;
+  --kbt:#f5c518;--kbt2:#e8a317;--blue:#2c94c2;
+  --green:#22c55e;--red:#ef4444;--purple:#a855f7;
+  --text:#e8e8f0;--muted:#8888aa;
+  --radius:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Londrina Solid',cursive;font-weight:400;min-height:100vh}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+/* HEADER */
+header{background:linear-gradient(135deg,#0d0d1a 0%,#1a0a2e 100%);border-bottom:2px solid var(--kbt);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{font-size:36px}
+.logo-text{font-family:'Luckiest Guy',cursive;font-size:28px;color:var(--kbt);letter-spacing:1px}
+.logo-sub{font-size:13px;color:var(--muted);margin-top:-4px}
+.header-right{display:flex;align-items:center;gap:16px}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header-stats{display:flex;gap:20px}
+.hstat{text-align:center}
+.hstat-num{font-size:22px;color:var(--kbt);font-family:'Luckiest Guy',cursive}
+.hstat-label{font-size:11px;color:var(--muted)}
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: #000000;
-            color: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            overflow: hidden;
-        }
+/* NAV */
+nav{background:var(--surface);border-bottom:1px solid #2a2a4a;padding:0 24px;display:flex;gap:4px}
+.nav-btn{padding:12px 20px;background:none;border:none;color:var(--muted);font-family:'Londrina Solid',cursive;font-size:16px;cursor:pointer;border-bottom:3px solid transparent;transition:.15s}
+.nav-btn:hover{color:var(--text)}
+.nav-btn.active{color:var(--kbt);border-bottom-color:var(--kbt)}
 
-        /* Animated background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(ellipse at 30% 20%, rgba(44,148,194,0.12) 0%, transparent 50%),
-                        radial-gradient(ellipse at 70% 80%, rgba(44,148,194,0.08) 0%, transparent 50%);
-            animation: bgShift 15s ease-in-out infinite alternate;
-            z-index: 0;
-        }
-        @keyframes bgShift {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(3%, 3%) rotate(3deg); }
-        }
+/* MAIN */
+main{padding:24px;max-width:1400px;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
 
-        .container {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            max-width: 480px;
-            width: 100%;
-        }
+/* GRID */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
 
-        /* Logo animation */
-        .logo {
-            font-family: "VVDS Fifties", sans-serif;
-            font-size: clamp(2.8rem, 10vw, 4.5rem);
-            color: #2C94C2;
-            text-align: center;
-            line-height: 1;
-            margin-bottom: 0.3rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.8s ease-out 0.2s forwards;
-        }
-        .trivia {
-            font-family: "VVDS Fifties", sans-serif;
-            font-size: clamp(1.5rem, 5vw, 2.2rem);
-            color: #ffffff;
-            text-align: center;
-            margin-bottom: 0.3rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.8s ease-out 0.4s forwards;
-        }
-        .tagline {
-            font-family: "VVDS Fifties", sans-serif;
-            font-size: clamp(0.9rem, 3vw, 1.2rem);
-            color: #ffffff;
-            text-align: center;
-            font-style: italic;
-            margin-bottom: 2rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.8s ease-out 0.6s forwards;
-        }
+/* STAT CARDS */
+.stat-card{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid #2a2a4a}
+.stat-card.highlight{border-color:var(--kbt);box-shadow:0 0 20px rgba(245,197,24,.1)}
+.stat-num{font-family:'Luckiest Guy',cursive;font-size:42px;line-height:1}
+.stat-num.gold{color:var(--kbt)}
+.stat-num.blue{color:var(--blue)}
+.stat-num.green{color:var(--green)}
+.stat-num.purple{color:var(--purple)}
+.stat-label{font-size:13px;color:var(--muted);margin-top:4px}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid #2a2a4a}
 
-        @keyframes fadeUp {
-            to { opacity: 1; transform: translateY(0); }
-        }
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid #2a2a4a;margin-bottom:16px}
+.card-title{font-family:'Luckiest Guy',cursive;font-size:18px;color:var(--kbt);margin-bottom:16px;display:flex;align-items:center;gap:8px}
 
-        /* Badge */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            background: rgba(44,148,194,0.15);
-            border: 1px solid rgba(44,148,194,0.4);
-            color: #2C94C2;
-            padding: 0.4rem 1.2rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 2.5rem;
-            opacity: 0;
-            animation: fadeUp 0.8s ease-out 0.8s forwards;
-        }
-        .badge::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: #2C94C2;
-            border-radius: 50%;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+/* CATEGORY BARS */
+.cat-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.cat-name{width:180px;font-size:14px;color:var(--text);flex-shrink:0}
+.cat-bar{flex:1;height:8px;background:#2a2a4a;border-radius:4px;overflow:hidden}
+.cat-fill{height:100%;background:linear-gradient(90deg,var(--kbt),var(--kbt2));border-radius:4px;transition:width .6s}
+.cat-count{width:50px;text-align:right;font-size:13px;color:var(--muted)}
 
-        /* Portal cards */
-        .portals {
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-            width: 100%;
-            opacity: 0;
-            animation: fadeUp 0.8s ease-out 1s forwards;
-        }
-        .portal-link {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #ffffff;
-            text-decoration: none;
-            padding: 1.1rem 1.5rem;
-            border-radius: 16px;
-            transition: all 0.25s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .portal-link:hover {
-            background: rgba(44,148,194,0.12);
-            border-color: rgba(44,148,194,0.3);
-            transform: translateX(4px);
-        }
-        .portal-link:active {
-            transform: scale(0.98);
-        }
-        .portal-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            flex-shrink: 0;
-        }
-        .portal-icon.player { background: rgba(44,148,194,0.2); }
-        .portal-icon.host { background: rgba(232,163,23,0.2); }
-        .portal-icon.admin { background: rgba(255,255,255,0.08); }
+/* TOOL GRID */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.tool-card{background:var(--surface);border:1px solid #2a2a4a;border-radius:var(--radius);padding:16px;text-align:center;text-decoration:none;color:var(--text);transition:.15s;display:block}
+.tool-card:hover{border-color:var(--kbt);transform:translateY(-2px);box-shadow:0 4px 20px rgba(245,197,24,.15)}
+.tool-icon{font-size:32px;margin-bottom:8px;display:block}
+.tool-name{font-size:14px;font-weight:700}
+.tool-desc{font-size:11px;color:var(--muted);margin-top:4px}
 
-        .portal-info { flex: 1; }
-        .portal-name {
-            font-weight: 700;
-            font-size: 1rem;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        .portal-desc {
-            font-size: 0.8rem;
-            opacity: 0.5;
-            margin-top: 0.15rem;
-        }
-        .portal-arrow {
-            font-size: 1.2rem;
-            opacity: 0.3;
-            transition: all 0.25s;
-        }
-        .portal-link:hover .portal-arrow {
-            opacity: 0.8;
-            transform: translateX(3px);
-        }
+/* APP LINKS */
+.app-links{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.app-link{background:var(--card);border-radius:var(--radius);padding:24px;text-decoration:none;color:var(--text);border:2px solid #2a2a4a;transition:.15s;text-align:center}
+.app-link:hover{transform:translateY(-3px)}
+.app-link.host{border-color:var(--kbt)}
+.app-link.player{border-color:var(--blue)}
+.app-link.admin{border-color:var(--purple)}
+.app-link-icon{font-size:48px;display:block;margin-bottom:12px}
+.app-link-name{font-family:'Luckiest Guy',cursive;font-size:22px}
+.app-link-desc{font-size:13px;color:var(--muted);margin-top:4px}
 
-        /* Divider */
-        .divider {
-            width: 60px;
-            height: 1px;
-            background: rgba(255,255,255,0.1);
-            margin: 1.5rem 0;
-            opacity: 0;
-            animation: fadeUp 0.8s ease-out 1.2s forwards;
-        }
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:var(--muted);padding:8px 12px;border-bottom:1px solid #2a2a4a;text-transform:uppercase}
+td{padding:10px 12px;border-bottom:1px solid #1a1a2e;font-size:14px}
+tr:hover td{background:rgba(255,255,255,.02)}
 
-        /* Live site link */
-        .live-link {
-            opacity: 0;
-            animation: fadeUp 0.8s ease-out 1.4s forwards;
-            text-align: center;
-        }
-        .live-link a {
-            color: rgba(255,255,255,0.4);
-            text-decoration: none;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: color 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .live-link a:hover { color: #2C94C2; }
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.badge.active{background:rgba(34,197,94,.15);color:var(--green)}
+.badge.archived{background:rgba(107,114,128,.15);color:#6b7280}
+.badge.standard{background:rgba(44,148,194,.15);color:var(--blue)}
+.badge.multimedia{background:rgba(168,85,247,.15);color:var(--purple)}
 
-        /* Footer */
-        .footer {
-            margin-top: 2rem;
-            font-size: 0.7rem;
-            opacity: 0.25;
-            text-align: center;
-            opacity: 0;
-            animation: fadeUp 0.8s ease-out 1.6s forwards;
-        }
+/* LOADING */
+.loading{color:var(--muted);font-size:14px;padding:20px;text-align:center}
+.error{color:var(--red);font-size:13px;padding:12px;background:rgba(239,68,68,.1);border-radius:8px}
 
-        /* Mobile adjustments */
-        @media (max-width: 480px) {
-            body { padding: 1.5rem; }
-            .portal-link { padding: 1rem 1.2rem; }
-        }
-    </style>
-    <script src="kbt-data.js"></script>
+/* SEARCH */
+.search-bar{display:flex;gap:12px;margin-bottom:16px}
+.search-bar input,.search-bar select{background:var(--surface);border:1px solid #2a2a4a;border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Londrina Solid',cursive;font-size:15px;flex:1}
+.search-bar select{flex:0 0 180px}
+.btn{background:var(--kbt);color:#000;border:none;border-radius:8px;padding:10px 20px;font-family:'Luckiest Guy',cursive;font-size:16px;cursor:pointer;transition:.15s}
+.btn:hover{background:var(--kbt2)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid #2a2a4a}
+.btn.ghost:hover{border-color:var(--kbt);color:var(--kbt)}
+
+@media(max-width:768px){
+  .grid-4,.grid-3{grid-template-columns:1fr 1fr}
+  .app-links{grid-template-columns:1fr}
+  .header-stats{display:none}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">KNOW BRAINER</div>
-        <div class="trivia">Trivia.</div>
-        <div class="tagline">Trivia. But Better.</div>
-        <div class="badge">Trial Build</div>
 
-        <div class="portals">
-            <a href="/player-app" class="portal-link">
-                <div class="portal-icon player">🎮</div>
-                <div class="portal-info">
-                    <div class="portal-name">Player Portal</div>
-                    <div class="portal-desc">Teams, scores, badges &amp; wrapped</div>
-                </div>
-                <div class="portal-arrow">›</div>
-            </a>
-
-            <a href="/host-app" class="portal-link">
-                <div class="portal-icon host">🎤</div>
-                <div class="portal-info">
-                    <div class="portal-name">Host Portal</div>
-                    <div class="portal-desc">Run trivia nights &amp; manage quizzes</div>
-                </div>
-                <div class="portal-arrow">›</div>
-            </a>
-
-            <a href="/admin-app" class="portal-link">
-                <div class="portal-icon admin">⚙️</div>
-                <div class="portal-info">
-                    <div class="portal-name">Admin Portal</div>
-                    <div class="portal-desc">Settings, venues, analytics &amp; config</div>
-                </div>
-                <div class="portal-arrow">›</div>
-            </a>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="live-link">
-            <a href="https://knowbrainertrivia.com.au" target="_blank">
-                View live site ↗
-            </a>
-        </div>
-
-        <div class="footer">KBT Trial Build — Linked to Supabase (<span id="kbtLiveTarget">...</span>)</div>
-        <script>
-          (async function(){
-            try {
-              if (!window.kbtData) return;
-              const ev = await window.kbtData.getEventByCode(window.kbtData.TARGET_EVENT_CODE);
-              const el = document.getElementById('kbtLiveTarget');
-              if (el && ev) el.textContent = ev.event_code + ' · ' + ev.event_description;
-              else if (el) el.textContent = 'offline fallback';
-            } catch(e) {
-              const el = document.getElementById('kbtLiveTarget');
-              if (el) el.textContent = 'offline (conn error)';
-            }
-          })();
-        </script>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div>
+      <div class="logo-text">KBT COMMAND</div>
+      <div class="logo-sub">Know Brainer Trivia — Paddy & George</div>
     </div>
+  </div>
+  <div class="header-right">
+    <div class="header-stats">
+      <div class="hstat"><div class="hstat-num" id="h-questions">—</div><div class="hstat-label">Questions</div></div>
+      <div class="hstat"><div class="hstat-num" id="h-categories">—</div><div class="hstat-label">Categories</div></div>
+      <div class="hstat"><div class="hstat-num" id="h-venues">—</div><div class="hstat-label">Venues</div></div>
+    </div>
+    <div class="status-dot" id="status-dot"></div>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showTab('overview')">🏠 Overview</button>
+  <button class="nav-btn" onclick="showTab('questions')">❓ Questions</button>
+  <button class="nav-btn" onclick="showTab('events')">📅 Events</button>
+  <button class="nav-btn" onclick="showTab('venues')">📍 Venues</button>
+  <button class="nav-btn" onclick="showTab('tools')">🛠 Tools</button>
+</nav>
+
+<main>
+
+<!-- OVERVIEW -->
+<div class="section active" id="tab-overview">
+
+  <div class="app-links">
+    <a href="/host-app" class="app-link host">
+      <span class="app-link-icon">🎤</span>
+      <div class="app-link-name">HOST APP</div>
+      <div class="app-link-desc">Run tonight's event</div>
+    </a>
+    <a href="/player-app" class="app-link player">
+      <span class="app-link-icon">📱</span>
+      <div class="app-link-name">PLAYER APP</div>
+      <div class="app-link-desc">Teams join here</div>
+    </a>
+    <a href="/admin-app" class="app-link admin">
+      <span class="app-link-icon">⚙️</span>
+      <div class="app-link-name">ADMIN</div>
+      <div class="app-link-desc">Manage everything</div>
+    </a>
+  </div>
+
+  <div class="grid-4">
+    <div class="stat-card highlight">
+      <div class="stat-num gold" id="stat-active">—</div>
+      <div class="stat-label">Active Questions</div>
+      <div class="stat-sub" id="stat-multimedia">— multimedia</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num blue" id="stat-categories">—</div>
+      <div class="stat-label">Categories</div>
+      <div class="stat-sub">Movies, Music, Sport + more</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green" id="stat-venues">—</div>
+      <div class="stat-label">Venues</div>
+      <div class="stat-sub" id="stat-events">— events on record</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num purple" id="stat-tools">10</div>
+      <div class="stat-label">Multimedia Tools</div>
+      <div class="stat-sub">Face Morph, Ghost Actors + more</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📊 Questions by Category</div>
+      <div id="cat-bars"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📍 Venues</div>
+      <div id="venues-list"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUESTIONS -->
+<div class="section" id="tab-questions">
+  <div class="card">
+    <div class="card-title">❓ Question Bank</div>
+    <div class="search-bar">
+      <input type="text" id="q-search" placeholder="Search questions..." oninput="searchQuestions()">
+      <select id="q-category" onchange="searchQuestions()">
+        <option value="">All Categories</option>
+      </select>
+      <select id="q-type" onchange="searchQuestions()">
+        <option value="">All Types</option>
+        <option value="standard">Standard</option>
+        <option value="face_morph">Face Morph</option>
+        <option value="brain">Brain</option>
+        <option value="guess_year">Guess Year</option>
+        <option value="carmen">Carmen</option>
+        <option value="crack_code">Crack Code</option>
+        <option value="linked_pics">Linked Pics</option>
+        <option value="brand">Brand</option>
+        <option value="soundmash">SoundMash</option>
+        <option value="ghost_actors">Ghost Actors</option>
+      </select>
+    </div>
+    <div id="questions-table"><div class="loading">Loading questions...</div></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn ghost" onclick="prevPage()">← Prev</button>
+      <span id="page-info" style="padding:10px;color:var(--muted);font-size:14px"></span>
+      <button class="btn ghost" onclick="nextPage()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENTS -->
+<div class="section" id="tab-events">
+  <div class="card">
+    <div class="card-title">📅 Events (from Armada)</div>
+    <div id="events-table"><div class="loading">Loading events...</div></div>
+  </div>
+</div>
+
+<!-- VENUES -->
+<div class="section" id="tab-venues">
+  <div class="card">
+    <div class="card-title">📍 Venues</div>
+    <div id="venues-table"><div class="loading">Loading venues...</div></div>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<div class="section" id="tab-tools">
+  <div class="card">
+    <div class="card-title">🛠 Multimedia Question Tools</div>
+    <div class="tool-grid">
+      <a href="/face-morph-tool" class="tool-card"><span class="tool-icon">👤</span><div class="tool-name">Face Morph</div><div class="tool-desc">Blend two faces</div></a>
+      <a href="/brain-tool" class="tool-card"><span class="tool-icon">🧠</span><div class="tool-name">Name the Brain</div><div class="tool-desc">Top-of-head reveal</div></a>
+      <a href="/ghost-actors-tool" class="tool-card"><span class="tool-icon">👻</span><div class="tool-name">Ghost Actors</div><div class="tool-desc">Remove actors from stills</div></a>
+      <a href="/soundmash-tool" class="tool-card"><span class="tool-icon">🎵</span><div class="tool-name">Sound Mash</div><div class="tool-desc">Song connection round</div></a>
+      <a href="/crack-the-code-tool" class="tool-card"><span class="tool-icon">🔐</span><div class="tool-name">Crack The Code</div><div class="tool-desc">Rebus puzzles</div></a>
+      <a href="/linked-pics-tool" class="tool-card"><span class="tool-icon">🖼</span><div class="tool-name">Linked Pics</div><div class="tool-desc">4 images, one connection</div></a>
+      <a href="/brand-tool" class="tool-card"><span class="tool-icon">®️</span><div class="tool-name">Brands</div><div class="tool-desc">Brand history questions</div></a>
+      <a href="/carmen-sandiego-tool" class="tool-card"><span class="tool-icon">🌍</span><div class="tool-name">Carmen</div><div class="tool-desc">Where in the world?</div></a>
+      <a href="/guess-the-year-tool" class="tool-card"><span class="tool-icon">📅</span><div class="tool-name">Guess The Year</div><div class="tool-desc">Historical events</div></a>
+      <a href="/host-brief-tool" class="tool-card"><span class="tool-icon">🎤</span><div class="tool-name">Host Brief</div><div class="tool-desc">Generate host script</div></a>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script src="/kbt.js"></script>
+<script>
+// ---- NAVIGATION ----
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'questions' && !questionsLoaded) loadQuestions();
+  if (name === 'events' && !eventsLoaded) loadEvents();
+  if (name === 'venues' && !venuesLoaded) loadVenuesFull();
+}
+
+// ---- OVERVIEW LOAD ----
+let categoriesData = [];
+
+async function loadOverview() {
+  try {
+    // Stats
+    const [stats, venues, events] = await Promise.all([
+      KBT.getStats(),
+      KBT.getVenues(),
+      KBT.getEvents(5),
+    ]);
+
+    document.getElementById('stat-active').textContent = stats.active.toLocaleString();
+    document.getElementById('stat-multimedia').textContent = `${stats.multimedia} multimedia`;
+    document.getElementById('h-questions').textContent = stats.active.toLocaleString();
+
+    document.getElementById('stat-venues').textContent = venues.length;
+    document.getElementById('h-venues').textContent = venues.length;
+    document.getElementById('stat-events').textContent = `${events.length}+ events on record`;
+
+    // Categories
+    categoriesData = await KBT.getCategories();
+    document.getElementById('stat-categories').textContent = categoriesData.length;
+    document.getElementById('h-categories').textContent = categoriesData.length;
+
+    const maxCount = categoriesData[0]?.count || 1;
+    document.getElementById('cat-bars').innerHTML = categoriesData.slice(0, 12).map(c => `
+      <div class="cat-row">
+        <div class="cat-name">${c.name}</div>
+        <div class="cat-bar"><div class="cat-fill" style="width:${Math.round(c.count/maxCount*100)}%"></div></div>
+        <div class="cat-count">${c.count.toLocaleString()}</div>
+      </div>`).join('');
+
+    // Populate category dropdown
+    const sel = document.getElementById('q-category');
+    categoriesData.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.name; o.textContent = `${c.name} (${c.count})`;
+      sel.appendChild(o);
+    });
+
+    // Venues list
+    document.getElementById('venues-list').innerHTML = venues.slice(0,8).map(v => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a4a;font-size:14px">
+        <span>${v.loc_fullname || v.loc_nickname || 'Unnamed'}</span>
+        <span style="color:var(--muted)">${v.loc_town || ''}</span>
+      </div>`).join('') + (venues.length > 8 ? `<div style="color:var(--muted);font-size:13px;margin-top:8px">+ ${venues.length - 8} more</div>` : '');
+
+    document.getElementById('status-dot').style.background = 'var(--green)';
+  } catch(e) {
+    document.getElementById('cat-bars').innerHTML = `<div class="error">${e.message}</div>`;
+  }
+}
+
+// ---- QUESTIONS ----
+let questionsLoaded = false, qPage = 0, qTotal = 0;
+const Q_LIMIT = 25;
+
+async function loadQuestions() {
+  questionsLoaded = true;
+  await searchQuestions();
+}
+
+async function searchQuestions(resetPage = true) {
+  if (resetPage) qPage = 0;
+  const search = document.getElementById('q-search')?.value;
+  const category = document.getElementById('q-category')?.value;
+  const type = document.getElementById('q-type')?.value;
+
+  document.getElementById('questions-table').innerHTML = '<div class="loading">Loading...</div>';
+
+  try {
+    const rows = await KBT.getQuestions({ search, category, type, limit: Q_LIMIT, offset: qPage * Q_LIMIT });
+    qTotal = rows.length;
+
+    if (!rows.length) {
+      document.getElementById('questions-table').innerHTML = '<div class="loading">No questions found</div>';
+      return;
+    }
+
+    document.getElementById('questions-table').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Category</th><th>Type</th></tr></thead>
+        <tbody>${rows.map(q => `
+          <tr>
+            <td style="color:var(--muted);width:50px">${q.id}</td>
+            <td>${q.question.substring(0, 80)}${q.question.length > 80 ? '…' : ''}</td>
+            <td style="color:var(--kbt)">${q.answer}</td>
+            <td>${q.category || '—'}</td>
+            <td><span class="badge ${q.question_type === 'standard' ? 'standard' : 'multimedia'}">${q.question_type}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+
+    document.getElementById('page-info').textContent = `Page ${qPage + 1} · Showing ${rows.length} results`;
+  } catch(e) {
+    document.getElementById('questions-table').innerHTML = `<div class="error">${e.message}</div>`;
+  }
+}
+
+function nextPage() { qPage++; searchQuestions(false); }
+function prevPage() { if (qPage > 0) { qPage--; searchQuestions(false); } }
+
+// ---- EVENTS ----
+let eventsLoaded = false;
+async function loadEvents() {
+  eventsLoaded = true;
+  try {
+    const events = await KBT.getEvents(50);
+    document.getElementById('events-table').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Code</th><th>Description</th></tr></thead>
+        <tbody>${events.map(e => `
+          <tr>
+            <td style="color:var(--muted)">${e.id}</td>
+            <td>${e.event_date ? e.event_date.substring(0,10) : '—'}</td>
+            <td><span class="badge ${e.event_status === 'active' ? 'active' : 'archived'}">${e.event_status || '—'}</span></td>
+            <td style="color:var(--kbt);font-family:'Luckiest Guy',cursive">${e.event_code || '—'}</td>
+            <td style="color:var(--muted)">${(e.event_description || '').substring(0,60)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    document.getElementById('events-table').innerHTML = `<div class="error">${e.message}</div>`;
+  }
+}
+
+// ---- VENUES ----
+let venuesLoaded = false;
+async function loadVenuesFull() {
+  venuesLoaded = true;
+  try {
+    const venues = await KBT.getVenues();
+    document.getElementById('venues-table').innerHTML = `
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Nickname</th><th>Town</th><th>Status</th></tr></thead>
+        <tbody>${venues.map(v => `
+          <tr>
+            <td style="color:var(--muted)">${v.id}</td>
+            <td>${v.loc_fullname || '—'}</td>
+            <td style="color:var(--kbt)">${v.loc_nickname || '—'}</td>
+            <td>${v.loc_town || '—'}</td>
+            <td><span class="badge ${v.loc_status === 'active' ? 'active' : 'archived'}">${v.loc_status || '—'}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    document.getElementById('venues-table').innerHTML = `<div class="error">${e.message}</div>`;
+  }
+}
+
+// ---- BOOT ----
+loadOverview();
+</script>
 </body>
 </html>
