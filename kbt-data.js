@@ -1,244 +1,168 @@
-// KBT Trial â shared data layer
-// Abstracts over Supabase (live) and localStorage (offline demo).
-// Usage: drop this <script> into any page BEFORE the page's own code.
+// kbt-data.js — KBT shared data layer v2
+// All apps import this. Direct Supabase, no Morris, correct kbt_ table names.
 
-(function(){
-  const SUPABASE_URL  = 'https://huvfgenbcaiicatvtxak.supabase.co';
-  const REAL_ANON     = ['eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9','eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0','uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc'].join('.');
-  const TARGET_EVENT_CODE = 'TEST-NIGHT-001';
+(function () {
+  const SB = 'https://huvfgenbcaiicatvtxak.supabase.co';
+  const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc';
 
-  const MODE_KEY = 'kbtDataMode';
-  function getMode(){
-    const m = localStorage.getItem(MODE_KEY);
-    return (m === 'offline') ? 'offline' : 'live';
-  }
-  function setMode(m){ localStorage.setItem(MODE_KEY, m); }
-
-  const HEADERS = {
-    apikey: REAL_ANON,
-    Authorization: 'Bearer ' + REAL_ANON,
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
+  const H = {
+    'apikey': ANON,
+    'Authorization': 'Bearer ' + ANON,
+    'Content-Type': 'application/json'
   };
 
-  async function pgGet(path, params){
-    const url = new URL(SUPABASE_URL + '/rest/v1/' + path);
-    if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-    const res = await fetch(url.toString(), { headers: HEADERS });
-    if (!res.ok) throw new Error('Supabase GET ' + path + ' -> ' + res.status);
-    return res.json();
+  async function get(table, params) {
+    const url = new URL(SB + '/rest/v1/' + table);
+    if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const r = await fetch(url.toString(), { headers: H });
+    if (!r.ok) throw new Error(table + ' -> ' + r.status);
+    return r.json();
   }
 
-  async function pgPost(path, body, prefer){
-    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+  async function post(table, body, prefer) {
+    const r = await fetch(SB + '/rest/v1/' + table, {
       method: 'POST',
-      headers: { ...HEADERS, Prefer: prefer || 'return=representation' },
+      headers: { ...H, 'Prefer': prefer || 'return=representation' },
       body: JSON.stringify(body)
     });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error('Supabase POST ' + path + ' -> ' + res.status + ': ' + text);
-    }
-    return res.json();
+    if (!r.ok) throw new Error((await r.text()));
+    return r.json();
   }
 
-  const live = {
-    async getEvents(){
-      return pgGet('event', {
-        select: 'id,event_code,event_description,event_date,event_status,event_location_id',
-        order: 'event_date.desc'
+  const kbt = {
+    // ── EVENTS ────────────────────────────────────────────
+    async getEvents(limit) {
+      return get('kbt_event', {
+        select: 'id,event_code,event_date,event_status,event_location_id',
+        order: 'event_date.desc',
+        limit: limit || 20
       });
     },
-    async getEventByCode(code){
-      const rows = await pgGet('event', {
-        select: 'id,event_code,event_description,event_date,event_status,event_location_id',
-        event_code: 'eq.' + code,
-        limit: 1
-      });
-      return rows[0] || null;
-    },
-    async getEventLocation(locId){
-      if (!locId) return null;
-      const rows = await pgGet('event_location', {
-        select: 'id,loc_fullname,loc_nickname,loc_suburb,loc_town,loc_dow,loc_time,prize_1st,prize_2nd,prize_bonus',
-        id: 'eq.' + locId,
-        limit: 1
+
+    async getEventById(id) {
+      const rows = await get('kbt_event', {
+        select: 'id,event_code,event_date,event_status,event_location_id',
+        id: 'eq.' + id, limit: 1
       });
       return rows[0] || null;
     },
-    async getQuizItems(eventId){
-      return pgGet('quiz', {
-        select: 'id,quiz_item_round,quiz_item_number,quiz_item_order,quiz_points,quiz_qtype,question:quiz_question_id(id,question_question_text,question_answer_text,question_question_supporttext,question_fun_fact,question_category_group,question_type,question_image_url,question_audio_url)',
+
+    async getEventByCode(code) {
+      const rows = await get('kbt_event', {
+        select: 'id,event_code,event_date,event_status,event_location_id',
+        event_code: 'eq.' + code, limit: 1
+      });
+      return rows[0] || null;
+    },
+
+    // ── LOCATIONS ─────────────────────────────────────────
+    async getLocation(id) {
+      if (!id) return null;
+      const rows = await get('kbt_loc', {
+        select: 'id,loc_fullname,loc_nickname,loc_town,loc_region,loc_freq,loc_status',
+        id: 'eq.' + id, limit: 1
+      });
+      return rows[0] || null;
+    },
+
+    async getLocations() {
+      return get('kbt_loc', {
+        select: 'id,loc_fullname,loc_nickname,loc_town,loc_status',
+        order: 'id'
+      });
+    },
+
+    // ── QUIZ ITEMS (two-query: items then questions) ───────
+    async getQuizItems(eventId) {
+      // Step 1: get all quiz item rows for this event
+      const items = await get('kbt_quiz', {
+        select: 'id,quiz_item_round,quiz_item_number,quiz_item_order,quiz_points,quiz_qtype,quiz_question_id,quiz_time_limit,quiz_wager_min,quiz_wager_max',
         quiz_event_id: 'eq.' + eventId,
         order: 'quiz_item_round.asc,quiz_item_order.asc,quiz_item_number.asc'
       });
-    },
-    async getRegisteredTeams(eventId){
-      const [official, trial] = await Promise.all([
-        pgGet('event_team_registrations', {
-          select: 'id,display_name,created_at,team:team_id(id,team_code,team_name,is_active)',
-          event_id: 'eq.' + eventId,
-          order: 'created_at.asc'
-        }).catch(() => []),
-        pgGet('trial_registrations', {
-          select: 'id,event_code,team_name,display_name,team_color,team_emoji,created_at',
-          event_code: 'eq.' + TARGET_EVENT_CODE,
-          order: 'created_at.asc'
-        }).catch(() => [])
-      ]);
-      const trialShaped = trial.map(t => ({
-        id: t.id,
-        display_name: t.display_name || t.team_name,
-        created_at: t.created_at,
-        team: {
-          id: t.id,
-          team_code: t.team_name,
-          team_name: t.team_name,
-          is_active: true
-        },
-        team_color: t.team_color,
-        team_emoji: t.team_emoji,
-        _trial: true
-      }));
-      return [...official, ...trialShaped];
-    },
-    async registerTeam(eventCode, teamName, displayName, color, emoji){
-      const rows = await pgPost('trial_registrations', {
-        event_code: eventCode || TARGET_EVENT_CODE,
-        team_name: teamName,
-        display_name: displayName || teamName,
-        team_color: color || null,
-        team_emoji: emoji || null
-      });
-      return rows[0] || null;
-    },
-    async getAnswersForEvent(eventId){
-      return pgGet('answers', {
-        select: 'id,team_id,question_id,answer_text,round,points_value,created_at',
-        event_id: 'eq.' + eventId
+      if (!items.length) return [];
+
+      // Step 2: fetch the actual questions by IDs
+      const qIds = [...new Set(items.map(i => i.quiz_question_id).filter(Boolean))];
+      let questionsMap = {};
+      if (qIds.length) {
+        const qs = await get('kbt_question', {
+          select: 'id,question_question_text,question_answer_text,question_question_supporttext,question_answer_supporttext,question_host_notes,question_fun_fact,question_image_url,question_audio_url,question_status',
+          id: 'in.(' + qIds.join(',') + ')'
+        });
+        qs.forEach(q => { questionsMap[q.id] = q; });
+      }
+
+      // Step 3: merge and normalise to a clean format
+      return items.map(item => {
+        const q = questionsMap[item.quiz_question_id] || {};
+        return {
+          id: item.id,
+          round: item.quiz_item_round,
+          num: item.quiz_item_number,
+          order: item.quiz_item_order,
+          points: item.quiz_points || 1,
+          type: item.quiz_qtype || 'Classic',
+          timeLimit: item.quiz_time_limit,
+          // Normalised question fields
+          text: q.question_question_text || '',
+          answer: q.question_answer_text || '',
+          support: q.question_question_supporttext || '',
+          answerSupport: q.question_answer_supporttext || '',
+          hostNotes: q.question_host_notes || '',
+          funFact: q.question_fun_fact || '',
+          imageUrl: q.question_image_url || '',
+          audioUrl: q.question_audio_url || '',
+          // Raw refs
+          questionId: item.quiz_question_id,
+        };
       });
     },
-    async submitRoundScore(eventCode, teamName, round, points){
-      const rows = await pgPost(
-        'trial_scores',
-        {
-          event_code: eventCode || TARGET_EVENT_CODE,
-          team_name: teamName,
-          round: round,
-          question_number: 0,
-          points: parseInt(points) || 0
-        },
-        'resolution=merge-duplicates,return=representation'
-      );
-      return rows[0] || null;
-    },
-    async getLeaderboard(eventCode){
-      const scores = await pgGet('trial_scores', {
-        select: 'team_name,round,points',
-        event_code: 'eq.' + (eventCode || TARGET_EVENT_CODE),
-        question_number: 'eq.0'
+
+    // ── TEAMS (live event teams/scores) ───────────────────
+    async getTeams(eventId) {
+      return get('kbt_team', {
+        select: 'id,created_at,team_email',
+        order: 'id.desc',
+        limit: 100
       });
-      const totals = {};
-      scores.forEach(function(s){ totals[s.team_name] = (totals[s.team_name] || 0) + (s.points || 0); });
-      return Object.entries(totals)
-        .map(function([team_name, total]){ return { team_name: team_name, total: total }; })
-        .sort(function(a, b){ return b.total - a.total; });
-    }
-  };
+    },
 
-  const offline = {
-    async getEvents(){
-      return [{
-        id: 'offline-event',
-        event_code: 'OFFLINE-DEMO',
-        event_description: 'Offline Demo Night',
-        event_date: new Date().toISOString().slice(0,10),
-        event_status: 'active',
-        event_location_id: null
-      }];
+    async getSessionScores(eventId) {
+      return get('kbt_sess', {
+        select: 'id,sess_event_id,sess_team_id,sess_round,sess_score,sess_bonus',
+        sess_event_id: 'eq.' + eventId,
+        order: 'sess_round.asc'
+      });
     },
-    async getEventByCode(){ return (await offline.getEvents())[0]; },
-    async getEventLocation(){ return { loc_fullname: 'Offline Pub', loc_nickname: 'Offline', loc_suburb: 'Demo' }; },
-    async getQuizItems(){ return []; },
-    async getRegisteredTeams(){
-      let teams = [];
-      try { teams = JSON.parse(localStorage.getItem('kbtTeams') || '[]'); } catch(e){}
-      return teams.map(t => ({
-        id: 'offline-' + t.code,
-        display_name: t.name,
-        team: { id: 'offline-t-' + t.code, team_code: t.code, team_name: t.name, is_active: true }
-      }));
-    },
-    async registerTeam(eventCode, teamName, displayName, color, emoji){
-      let teams = [];
-      try { teams = JSON.parse(localStorage.getItem('kbtTeams') || '[]'); } catch(e){}
-      const entry = { code: teamName, name: displayName || teamName, color, emoji, eventCode };
-      teams.push(entry);
-      localStorage.setItem('kbtTeams', JSON.stringify(teams));
-      return entry;
-    },
-    async getAnswersForEvent(){ return []; },
-    async submitRoundScore(eventCode, teamName, round, points){
-      let scores = {};
-      try { scores = JSON.parse(localStorage.getItem('kbtScores') || '{}'); } catch(e){}
-      if (!scores[teamName]) scores[teamName] = {};
-      scores[teamName]['R' + round] = parseInt(points) || 0;
-      localStorage.setItem('kbtScores', JSON.stringify(scores));
-      return { team_name: teamName, round: round, points: parseInt(points) || 0 };
-    },
-    async getLeaderboard(){
-      let scores = {};
-      try { scores = JSON.parse(localStorage.getItem('kbtScores') || '{}'); } catch(e){}
-      return Object.entries(scores)
-        .map(function([name, rounds]){ return { team_name: name, total: Object.values(rounds).reduce(function(s,v){ return s+(v||0); }, 0) }; })
-        .sort(function(a, b){ return b.total - a.total; });
-    }
-  };
 
-  const api = {
-    mode: getMode,
-    setMode,
-    TARGET_EVENT_CODE,
-    SUPABASE_URL,
-    async ready(){ return true; },
-    async getEvents(){ return (getMode()==='live' ? live : offline).getEvents(); },
-    async getEventByCode(c){ return (getMode()==='live' ? live : offline).getEventByCode(c); },
-    async getEventLocation(id){ return (getMode()==='live' ? live : offline).getEventLocation(id); },
-    async getQuizItems(eid){ return (getMode()==='live' ? live : offline).getQuizItems(eid); },
-    async getRegisteredTeams(eid){ return (getMode()==='live' ? live : offline).getRegisteredTeams(eid); },
-    async registerTeam(code, name, display, color, emoji){
-      return (getMode()==='live' ? live : offline).registerTeam(code, name, display, color, emoji);
-    },
-    async getRoundScores(code){
-      return (getMode()==='live' ? live : offline).getRoundScores(code);
-    },
-    async submitRoundScore(code, name, round, points){
-      return (getMode()==='live' ? live : offline).submitRoundScore(code, name, round, points);
-    },
-    async getLeaderboard(code){
-      return (getMode()==='live' ? live : offline).getLeaderboard(code);
-    },
-    async getAnswersForEvent(eid){ return (getMode()==='live' ? live : offline).getAnswersForEvent(eid); },
-
-    shapeQuestion(row){
-      const q = row.question || {};
-      return {
-        id: row.id,
-        round: row.quiz_item_round,
-        number: row.quiz_item_number,
-        order: row.quiz_item_order,
-        points: row.quiz_points || 1,
-        qtype: row.quiz_qtype || 'GENERAL',
-        text: q.question_question_text || '',
-        answer: q.question_answer_text || '',
-        support: q.question_question_supporttext || '',
-        funFact: q.question_fun_fact || '',
-        category: q.question_category_group || q.question_type || '',
-        imageUrl: q.question_image_url || null,
-        audioUrl: q.question_audio_url || null
+    // ── QUESTION BANK (unified questions table) ────────────
+    async getQuestions(opts) {
+      const { category, type, difficulty, status, limit, offset, search } = opts || {};
+      const params = {
+        select: 'id,question,answer,support_text,fun_fact,category,difficulty,question_type,image_url,audio_url',
+        status: 'eq.' + (status || 'active'),
+        order: 'random()',
+        limit: limit || 20,
+        offset: offset || 0
       };
-    }
+      if (category) params.category = 'eq.' + category;
+      if (type) params.question_type = 'eq.' + type;
+      if (difficulty) params.difficulty = 'eq.' + difficulty;
+      if (search) params.question = 'ilike.*' + search + '*';
+      return get('questions', params);
+    },
+
+    // ── HOSTS ─────────────────────────────────────────────
+    async getHosts() {
+      return get('kbt_host', {
+        select: 'id,host_firstname,host_lastname,host_displayname,host_email,is_active',
+        order: 'id'
+      });
+    },
   };
 
-  window.kbtData = api;
+  // Expose globally
+  window.KBT = kbt;
+  window.kbtData = kbt; // backwards compat with existing host-app code
 })();
