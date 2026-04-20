@@ -2,6 +2,14 @@
   "version": 2,
   "routes": [
     {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/index",
+      "dest": "/index.html"
+    },
+    {
       "src": "/admin-app",
       "dest": "/admin-app.html"
     },
