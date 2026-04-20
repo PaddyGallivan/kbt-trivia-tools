@@ -1,0 +1,137 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/admin-app",
+      "dest": "/admin-app.html"
+    },
+    {
+      "src": "/admin-app/",
+      "dest": "/admin-app.html"
+    },
+    {
+      "src": "/brain-tool",
+      "dest": "/brain-tool.html"
+    },
+    {
+      "src": "/brain-tool/",
+      "dest": "/brain-tool.html"
+    },
+    {
+      "src": "/brand-tool",
+      "dest": "/brand-tool.html"
+    },
+    {
+      "src": "/brand-tool/",
+      "dest": "/brand-tool.html"
+    },
+    {
+      "src": "/carmen-sandiego-tool",
+      "dest": "/carmen-sandiego-tool.html"
+    },
+    {
+      "src": "/carmen-sandiego-tool/",
+      "dest": "/carmen-sandiego-tool.html"
+    },
+    {
+      "src": "/crack-the-code-tool",
+      "dest": "/crack-the-code-tool.html"
+    },
+    {
+      "src": "/crack-the-code-tool/",
+      "dest": "/crack-the-code-tool.html"
+    },
+    {
+      "src": "/face-morph-tool",
+      "dest": "/face-morph-tool.html"
+    },
+    {
+      "src": "/face-morph-tool/",
+      "dest": "/face-morph-tool.html"
+    },
+    {
+      "src": "/ghost-actors-tool",
+      "dest": "/ghost-actors-tool.html"
+    },
+    {
+      "src": "/ghost-actors-tool/",
+      "dest": "/ghost-actors-tool.html"
+    },
+    {
+      "src": "/guess-the-year-tool",
+      "dest": "/guess-the-year-tool.html"
+    },
+    {
+      "src": "/guess-the-year-tool/",
+      "dest": "/guess-the-year-tool.html"
+    },
+    {
+      "src": "/host-app",
+      "dest": "/host-app.html"
+    },
+    {
+      "src": "/host-app/",
+      "dest": "/host-app.html"
+    },
+    {
+      "src": "/host-brief-tool",
+      "dest": "/host-brief-tool.html"
+    },
+    {
+      "src": "/host-brief-tool/",
+      "dest": "/host-brief-tool.html"
+    },
+    {
+      "src": "/kbt-examples",
+      "dest": "/kbt-examples.html"
+    },
+    {
+      "src": "/kbt-examples/",
+      "dest": "/kbt-examples.html"
+    },
+    {
+      "src": "/linked-pics-tool",
+      "dest": "/linked-pics-tool.html"
+    },
+    {
+      "src": "/linked-pics-tool/",
+      "dest": "/linked-pics-tool.html"
+    },
+    {
+      "src": "/player-app",
+      "dest": "/player-app.html"
+    },
+    {
+      "src": "/player-app/",
+      "dest": "/player-app.html"
+    },
+    {
+      "src": "/question-dev",
+      "dest": "/question-dev.html"
+    },
+    {
+      "src": "/question-dev/",
+      "dest": "/question-dev.html"
+    },
+    {
+      "src": "/soundmash-tool",
+      "dest": "/soundmash-tool.html"
+    },
+    {
+      "src": "/soundmash-tool/",
+      "dest": "/soundmash-tool.html"
+    },
+    {
+      "src": "/tools",
+      "dest": "/tools.html"
+    },
+    {
+      "src": "/tools/",
+      "dest": "/tools.html"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ]
+}
