@@ -1956,25 +1956,309 @@ loadVenueDropdown();
 // Load draft count for badge
 dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('draft-badge').textContent=n;});
 
+  // ── GOOGLE SLIDES GENERATION ─────────────────────────────────────────────
+  const GSLIDES_CLIENT_ID = "205533966048-1f5e2js8d66l2970lv5emd48mrg1lhqs.apps.googleusercontent.com";
+  const SUPABASE_URL = "https://huvfgenbcaiicatvtxak.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc";
+  let gTokenClient = null;
+  let gAccessToken = null;
+
+  // KBT color palette (RGB 0-1)
+  const KC = {
+    BG:     {red:0.957,green:0.973,blue:0.984},
+    DARK:   {red:0.263,green:0.263,blue:0.263},
+    BLUE:   {red:0.114,green:0.686,blue:0.945},
+    BLUE2:  {red:0.173,green:0.580,blue:0.761},
+    WHITE:  {red:1,green:1,blue:1},
+    GREEN:  {red:0.133,green:0.780,blue:0.529},
+    YELLOW: {red:0.984,green:0.773,blue:0.000},
+    RED:    {red:0.984,green:0.255,blue:0.255},
+    ORANGE: {red:1.000,green:0.635,blue:0.318},
+    PURPLE: {red:0.616,green:0.478,blue:0.925},
+    PINK:   {red:0.984,green:0.518,blue:0.514},
+    DARK_BG:{red:0.102,green:0.102,blue:0.118},
+  };
+  const TYPE_COLORS = {
+    follower_freebie:KC.BLUE, freebie:KC.BLUE, standard:KC.BLUE, classic:KC.BLUE,
+    "50-50":KC.ORANGE, multiple_choice:KC.PURPLE, maths:KC.PINK,
+    song_lyrics:KC.GREEN, soundmash:KC.GREEN, anagram:KC.ORANGE,
+    face_morph:KC.PURPLE, ghost_actors:KC.PURPLE, linked_pics:KC.PURPLE,
+    map_pins:KC.GREEN, guess_the_year:KC.GREEN, crack_the_code:KC.PURPLE,
+    bonus_1:KC.YELLOW, bonus_ht:KC.YELLOW, gambler:KC.RED,
+    brain:KC.BLUE2, brand:KC.BLUE2,
+  };
+  const SW = 9144000, SH = 5143500; // slide dimensions EMU
+
+  function loadGIS() {
+    if (window.google && window.google.accounts) return Promise.resolve();
+    return new Promise(res => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = res;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function getGToken() {
+    await loadGIS();
+    if (gAccessToken) return gAccessToken;
+    return new Promise((res, rej) => {
+      gTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GSLIDES_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file',
+        callback: (r) => {
+          if (r.error) return rej(r.error);
+          gAccessToken = r.access_token;
+          res(r.access_token);
+        },
+      });
+      gTokenClient.requestAccessToken({prompt:''});
+    });
+  }
+
+  async function dbFetch(path) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`}
+    });
+    return r.json();
+  }
+
+  function mkId() { return 'obj_' + Math.random().toString(36).slice(2,10); }
+
+  function setBg(slideId, color) {
+    return [{updatePageProperties:{objectId:slideId,pageProperties:{pageBackgroundFill:{solidFill:{color:{rgbColor:color}}}},fields:'pageBackgroundFill'}}];
+  }
+
+  function rect(slideId, x, y, w, h, color) {
+    const id = mkId();
+    return [
+      {createShape:{objectId:id,shapeType:'RECTANGLE',elementProperties:{pageObjectId:slideId,size:{width:{magnitude:w,unit:'EMU'},height:{magnitude:h,unit:'EMU'}},transform:{scaleX:1,scaleY:1,translateX:x,translateY:y,unit:'EMU'}}}},
+      {updateShapeProperties:{objectId:id,shapeProperties:{shapeBackgroundFill:{solidFill:{color:{rgbColor:color}}},outline:{outlineFill:{solidFill:{color:{rgbColor:color}}},weight:{magnitude:0,unit:'PT'}}},fields:'shapeBackgroundFill,outline'}}
+    ];
+  }
+
+  function txt(slideId, text, x, y, w, h, size, color, bold=false, align='CENTER') {
+    const id = mkId();
+    return [
+      {createShape:{objectId:id,shapeType:'TEXT_BOX',elementProperties:{pageObjectId:slideId,size:{width:{magnitude:w,unit:'EMU'},height:{magnitude:h,unit:'EMU'}},transform:{scaleX:1,scaleY:1,translateX:x,translateY:y,unit:'EMU'}}}},
+      {insertText:{objectId:id,text:String(text)}},
+      {updateTextStyle:{objectId:id,style:{fontSize:{magnitude:size,unit:'PT'},foregroundColor:{opaqueColor:{rgbColor:color}},bold},fields:'fontSize,foregroundColor,bold'}},
+      {updateParagraphStyle:{objectId:id,style:{alignment:align},fields:'alignment'}}
+    ];
+  }
+
+  function logo(slideId) {
+    return [
+      ...txt(slideId,'KNOW',280000,130000,1500000,350000,22,KC.DARK,true,'LEFT'),
+      ...txt(slideId,'BRAINER',1650000,130000,2000000,350000,22,KC.BLUE2,true,'LEFT'),
+    ];
+  }
+
+  function accentBar(slideId, color) {
+    return rect(slideId, 0, 0, SW, 80000, color);
+  }
+
   async function generateGoogleSlides() {
-    const code = document.getElementById('slide-event-code').value.trim();
+    const code = document.getElementById('sg-event-code').value.trim();
     if (!code) return alert('Enter an event code first');
-    const btn = event.target;
+    const btn = document.getElementById('sg-gslides-btn');
+    const msg = document.getElementById('sg-msg');
     btn.disabled = true;
-    btn.textContent = '⏳ Generating...';
+    btn.textContent = '⏳ Connecting Google...';
+    msg.textContent = '';
+
     try {
-      const res = await fetch(`/api/generate-slides?event_code=${encodeURIComponent(code)}`);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'Unknown error');
-      document.getElementById('gslides-present-link').href = data.present_url;
-      document.getElementById('gslides-edit-link').href = data.slides_url;
+      // 1. Auth
+      const token = await getGToken();
+      btn.textContent = '⏳ Fetching event data...';
+
+      // 2. Event data
+      const [event] = await dbFetch(`kbt_event?event_code=eq.${encodeURIComponent(code)}&limit=1&select=id,event_date,event_description,event_location_id`);
+      if (!event) throw new Error('Event not found: ' + code);
+
+      let venue = event.event_description || 'KBT Trivia';
+      let timeStr = '7:00 PM';
+      if (event.event_location_id) {
+        const [loc] = await dbFetch(`kbt_loc?id=eq.${event.event_location_id}&select=loc_fullname,loc_time`);
+        if (loc) { venue = loc.loc_fullname || venue; timeStr = loc.loc_time || timeStr; }
+      }
+
+      const quiz = await dbFetch(`kbt_quiz?quiz_event_id=eq.${event.id}&order=quiz_item_round.asc,quiz_item_order.asc&select=quiz_item_round,quiz_item_number,quiz_points,quiz_qtype,quiz_question_id`);
+      const qids = [...new Set(quiz.map(s=>s.quiz_question_id).filter(Boolean))].slice(0,80);
+      let qMap = {};
+      if (qids.length) {
+        const qs = await dbFetch(`kbt_question?id=in.(${qids.join(',')})&select=id,question_question_text,question_answer_text,question_fun_fact`);
+        qs.forEach(q => qMap[q.id] = q);
+      }
+
+      btn.textContent = '⏳ Creating slides...';
+
+      // 3. Create empty presentation
+      const createRes = await fetch('https://slides.googleapis.com/v1/presentations', {
+        method:'POST',
+        headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+        body: JSON.stringify({title:`KBT — ${venue}`})
+      });
+      if (!createRes.ok) throw new Error('Create failed: ' + await createRes.text());
+      const pres = await createRes.json();
+      const presId = pres.presentationId;
+      const defaultSlideId = pres.slides[0].objectId;
+
+      // 4. Build all slide requests
+      const requests = [];
+      let slideIdx = 0;
+
+      const newSlide = (bg) => {
+        const id = 'sl_' + (++slideIdx).toString().padStart(3,'0') + '_' + Math.random().toString(36).slice(2,6);
+        requests.push({createSlide:{objectId:id,insertionIndex:slideIdx-1}});
+        setBg(id, bg).forEach(r => requests.push(r));
+        return id;
+      };
+      const add = (reqs) => reqs.forEach(r => requests.push(r));
+
+      // Welcome
+      const s1 = newSlide(KC.BG);
+      add(accentBar(s1, KC.BLUE2)); add(logo(s1));
+      add(txt(s1, venue, 0, 1800000, SW, 900000, 44, KC.DARK, true));
+      add(txt(s1, 'Trivia. But Better.', 0, 2900000, SW, 400000, 18, {red:0.6,green:0.6,blue:0.6}));
+
+      // Social
+      const s2 = newSlide(KC.DARK_BG);
+      add(logo(s2));
+      add(txt(s2, '@knowbrainertrivia', 0, 2000000, SW, 500000, 32, {red:0.847,green:0.506,blue:0.784}, true));
+      add(txt(s2, '/knowbrainertrivia', 0, 2600000, SW, 500000, 32, KC.BLUE, true));
+      add(txt(s2, 'Check our socials for a clue to the first question each week', 0, 3300000, SW, 400000, 16, {red:0.6,green:0.6,blue:0.6}));
+
+      // Location
+      const s3 = newSlide(KC.WHITE);
+      add(accentBar(s3, KC.BLUE2)); add(logo(s3));
+      add(txt(s3, timeStr, 280000, 1300000, 3500000, 1000000, 64, KC.BLUE, true, 'LEFT'));
+      add(txt(s3, venue, 280000, 2500000, 5000000, 600000, 28, KC.DARK, true, 'LEFT'));
+      add(txt(s3, '🥇 $75 Voucher', 5500000, 1500000, 3000000, 400000, 22, KC.BLUE2, true, 'LEFT'));
+      add(txt(s3, '🥈 Bar Prize', 5500000, 2000000, 3000000, 400000, 22, KC.BLUE2, true, 'LEFT'));
+      add(txt(s3, '➕ Bonus Prizes!', 5500000, 2500000, 3000000, 400000, 22, KC.BLUE2, true, 'LEFT'));
+
+      // To-do
+      const s4 = newSlide(KC.WHITE);
+      add(accentBar(s4, KC.BLUE2)); add(logo(s4));
+      add(txt(s4, 'To do list…', 280000, 800000, 6000000, 500000, 26, KC.BLUE, true, 'LEFT'));
+      ['Nominate a Team Captain','Captain scans QR code to register your team','Check email inbox for your answer submission link','Play like a Champion! 🏆'].forEach((t,i) => {
+        const y = 1600000 + i*780000;
+        add(txt(s4, `${i+1}.`, 280000, y, 500000, 600000, 22, KC.BLUE2, true, 'LEFT'));
+        add(txt(s4, t, 900000, y+100000, 7800000, 600000, 20, KC.DARK, false, 'LEFT'));
+      });
+
+      // Rounds
+      const byRound = {};
+      for (const slot of quiz) {
+        const r = slot.quiz_item_round || 1;
+        if (!byRound[r]) byRound[r] = [];
+        byRound[r].push({...slot, qd: qMap[slot.quiz_question_id] || {}});
+      }
+      const ROUND_NAMES = ['ONE','TWO','THREE','FOUR','FIVE','SIX'];
+
+      for (const r of Object.keys(byRound).sort((a,b)=>+a-+b)) {
+        const slots = byRound[r];
+
+        // Round intro
+        const ri = newSlide(KC.BG);
+        add(logo(ri));
+        add(txt(ri,'ROUND',0,1800000,SW,500000,18,KC.BLUE2,true));
+        add(txt(ri,ROUND_NAMES[(+r-1)%6],0,2300000,SW,1500000,96,KC.DARK,true));
+
+        for (const slot of slots) {
+          const qtype = (slot.quiz_qtype||'standard').toLowerCase();
+          const accent = TYPE_COLORS[qtype] || KC.BLUE;
+          const qt = slot.qd.question_question_text || '';
+          const qa = slot.qd.question_answer_text || '';
+          const qf = slot.qd.question_fun_fact || '';
+          const pts = slot.quiz_points || 1;
+          const qn = slot.quiz_item_number || 0;
+          const isBonus = ['bonus_1','bonus_ht'].includes(qtype);
+          const isGambler = qtype === 'gambler';
+          const label = qtype.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+          // Question slide
+          const sq = newSlide(isBonus ? KC.BG : KC.WHITE);
+          add(accentBar(sq, accent)); add(logo(sq));
+          add(txt(sq,`R${r}Q${qn}`,280000,150000,2000000,400000,24,accent,true,'LEFT'));
+          add(txt(sq,label.toUpperCase(),6000000,200000,2800000,350000,13,{red:0.6,green:0.6,blue:0.6},false,'RIGHT'));
+          add(txt(sq,`${pts} pt${pts>1?'s':''}`,6000000,550000,2800000,350000,13,accent,true,'RIGHT'));
+          if (isGambler) {
+            add(txt(sq,'🎲 GAMBLER PAIRS',0,800000,SW,600000,28,KC.RED,true));
+            add(txt(sq,qt||'Place your wagers!',280000,1600000,SW-560000,2800000,22,KC.DARK,false,'LEFT'));
+          } else if (isBonus) {
+            add(txt(sq,qtype==='bonus_1'?'🎯 BONUS QUESTION':'🪙 BONUS — HEADS & TAILS',0,700000,SW,600000,26,KC.YELLOW,true));
+            add(txt(sq,qt,280000,1500000,SW-560000,3200000,30,KC.DARK,false));
+          } else {
+            const fs = qt.length>150?24:qt.length>80?32:40;
+            add(txt(sq,qt,280000,1000000,SW-560000,4000000,fs,KC.DARK,false));
+          }
+
+          // Answer slide
+          const sa = newSlide(KC.WHITE);
+          add(accentBar(sa, accent)); add(logo(sa));
+          add(txt(sa,`R${r}Q${qn} — ANSWER`,280000,150000,7000000,400000,18,{red:0.6,green:0.6,blue:0.6},true,'LEFT'));
+          if (qt) add(txt(sa,qt,280000,700000,SW-560000,900000,16,{red:0.7,green:0.7,blue:0.7},false));
+          // Answer box
+          const ansBoxId = mkId();
+          const ansColor = (accent===KC.YELLOW||accent===KC.ORANGE) ? KC.DARK : KC.WHITE;
+          requests.push({createShape:{objectId:ansBoxId,shapeType:'RECTANGLE',elementProperties:{pageObjectId:sa,size:{width:{magnitude:7500000,unit:'EMU'},height:{magnitude:1800000,unit:'EMU'}},transform:{scaleX:1,scaleY:1,translateX:822000,translateY:1900000,unit:'EMU'}}}});
+          requests.push({updateShapeProperties:{objectId:ansBoxId,shapeProperties:{shapeBackgroundFill:{solidFill:{color:{rgbColor:isBonus?KC.YELLOW:accent}}},outline:{outlineFill:{solidFill:{color:{rgbColor:isBonus?KC.YELLOW:accent}}},weight:{magnitude:0,unit:'PT'}}},fields:'shapeBackgroundFill,outline'}});
+          const afs = qa.length>60?16:qa.length>30?28:44;
+          add(txt(sa,qa,922000,1950000,7300000,1650000,afs,ansColor,true));
+          if (qf) add(txt(sa,`💡 ${qf}`,280000,4100000,SW-560000,600000,14,{red:0.6,green:0.6,blue:0.6},false));
+        }
+
+        // Submit
+        const ss = newSlide(KC.GREEN);
+        add(txt(ss,`End of Round ${r}`,0,1800000,SW,1000000,60,KC.WHITE,true));
+        add(txt(ss,'Hit Submit in your email now ✉️',0,3000000,SW,600000,28,KC.WHITE,false));
+
+        // Ladder
+        const sl = newSlide(KC.BG);
+        add(accentBar(sl, KC.BLUE2)); add(logo(sl));
+        add(txt(sl,'🏆 Leaderboard',280000,700000,5000000,600000,36,KC.DARK,true,'LEFT'));
+        ['🥇','🥈','🥉','4','5'].forEach((m,i) => {
+          const y = 1600000 + i*680000;
+          add(txt(sl,m,280000,y,600000,550000,22,KC.DARK,false,'LEFT'));
+          add(txt(sl,`Team ${i+1}`,1000000,y+100000,5000000,450000,20,KC.DARK,true,'LEFT'));
+          add(txt(sl,'—',7800000,y+100000,1000000,450000,24,KC.BLUE2,true,'RIGHT'));
+        });
+      }
+
+      // Final
+      const sf = newSlide(KC.BG);
+      add(accentBar(sf, KC.BLUE2)); add(logo(sf));
+      add(txt(sf,'Thanks for playing!',0,2000000,SW,1000000,60,KC.DARK,true));
+      add(txt(sf,'See you next week 🍺',0,3200000,SW,500000,22,{red:0.6,green:0.6,blue:0.6},false));
+
+      // 5. Delete default slide + batch update
+      requests.unshift({deleteObject:{objectId:defaultSlideId}});
+
+      btn.textContent = `⏳ Building ${slideIdx} slides...`;
+
+      const batchRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
+        method:'POST',
+        headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+        body: JSON.stringify({requests})
+      });
+      if (!batchRes.ok) throw new Error('Batch update failed: ' + await batchRes.text());
+
+      // 6. Show result
+      document.getElementById('gslides-present-link').href = `https://docs.google.com/presentation/d/${presId}/present`;
+      document.getElementById('gslides-edit-link').href = `https://docs.google.com/presentation/d/${presId}/edit`;
       document.getElementById('gslides-result').style.display = 'block';
-      btn.textContent = '✅ Done!';
+      btn.textContent = `✅ Done — ${slideIdx} slides`;
+      msg.textContent = venue;
+
     } catch(e) {
+      console.error(e);
       alert('Error: ' + e.message);
       btn.textContent = '🎯 Generate Google Slides';
+      btn.disabled = false;
+      gAccessToken = null;
     }
-    btn.disabled = false;
   }
 </script>
 </body>
