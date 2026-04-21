@@ -1949,6 +1949,27 @@ async function deletePost(id) {
 loadVenueDropdown();
 // Load draft count for badge
 dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('draft-badge').textContent=n;});
+
+  async function generateGoogleSlides() {
+    const code = document.getElementById('slide-event-code').value.trim();
+    if (!code) return alert('Enter an event code first');
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+    try {
+      const res = await fetch(`/api/generate-slides?event_code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Unknown error');
+      document.getElementById('gslides-present-link').href = data.present_url;
+      document.getElementById('gslides-edit-link').href = data.slides_url;
+      document.getElementById('gslides-result').style.display = 'block';
+      btn.textContent = '✅ Done!';
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.textContent = '🎯 Generate Google Slides';
+    }
+    btn.disabled = false;
+  }
 </script>
 </body>
 </html>
