@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Know Brainer — Join Tonight</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@700;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--blue:#2c94c2;--yellow:#fbc500;--charcoal:#383737}
+body{font-family:'Outfit',sans-serif;background:#0d1117;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+.logo{font-family:'Fira Sans Condensed',sans-serif;font-size:42px;font-weight:900;letter-spacing:2px;color:#fff;text-transform:uppercase;text-align:center}
+.logo span{color:var(--yellow)}
+.tagline{font-size:16px;color:rgba(255,255,255,.5);text-align:center;margin-top:4px;letter-spacing:.05em}
+.card{background:#fff;border-radius:20px;padding:36px;margin:32px 0;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#qr-canvas{width:220px!important;height:220px!important}
+.join-url{font-size:13px;color:#666;margin-top:12px;word-break:break-all}
+.event-label{background:var(--blue);color:#fff;font-family:'Fira Sans Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;padding:6px 20px;border-radius:6px;margin-top:16px;display:inline-block}
+.instructions{text-align:center;max-width:500px}
+.step{display:flex;align-items:center;gap:16px;margin-bottom:20px;text-align:left}
+.step-num{width:40px;height:40px;border-radius:50%;background:var(--yellow);color:var(--charcoal);font-family:'Fira Sans Condensed',sans-serif;font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-text{font-size:16px;color:rgba(255,255,255,.85);line-height:1.4}
+.step-text strong{color:#fff}
+.url-bar{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 16px;font-size:14px;color:rgba(255,255,255,.7);text-align:center;margin-top:24px;font-family:monospace}
+/* Fullscreen presentation mode */
+.present-mode body{background:#1a1a2e}
+@media(min-width:1200px){
+  body{flex-direction:row;gap:80px;justify-content:center;align-items:center;padding:60px}
+  .instructions{max-width:400px}
+  .logo{font-size:52px}
+}
+</style>
+</head>
+<body>
+<div style="text-align:center">
+  <div class="logo">KNOW<span>BRAINER</span></div>
+  <div class="tagline">Trivia. But Better.</div>
+  <div class="card">
+    <canvas id="qr-canvas"></canvas>
+    <div id="event-label" class="event-label">Scan to Register</div>
+    <div class="join-url" id="join-url"></div>
+  </div>
+</div>
+
+<div class="instructions">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-text"><strong>Scan the QR code</strong> with your phone camera</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-text"><strong>Enter your team name</strong> and player details</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-text"><strong>You're in!</strong> Answers go through your phone</div>
+  </div>
+  <div class="url-bar" id="manual-url"></div>
+</div>
+
+<script>
+// Get event code from URL params
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code') || params.get('event') || 'TONIGHT';
+const base = window.location.origin;
+const joinUrl = `${base}/player-app?code=${encodeURIComponent(code)}`;
+
+document.getElementById('join-url').textContent = joinUrl;
+document.getElementById('manual-url').textContent = `${base}/player-app?code=${code}`;
+document.getElementById('event-label').textContent = code === 'TONIGHT' ? 'Scan to Register' : code;
+
+// Generate QR
+QRCode.toCanvas(document.getElementById('qr-canvas'), joinUrl, {
+  width: 220, margin: 2,
+  color: { dark: '#18181b', light: '#ffffff' }
+});
+</script>
+</body>
+</html>
