@@ -189,6 +189,32 @@ textarea{resize:vertical;min-height:60px}
 .tpl-icon{font-size:24px;margin-bottom:6px}
 .tpl-name{font-size:13px;font-weight:600;margin-bottom:3px}
 .tpl-desc{font-size:11px;color:var(--muted)}
+
+/* Slot assignment */
+.slot-assign-btn{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue);border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.slot-assign-btn:hover{background:var(--blue);color:#fff}
+.slot-assign-btn.done{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+.slot-panel{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin:6px 0 10px;display:none}
+.slot-panel.open{display:block}
+.slot-panel-head{font-size:12px;font-weight:600;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.slot-panel-head svg{width:14px;height:14px}
+.asset-preview{max-width:200px;max-height:120px;border-radius:6px;border:1px solid var(--border);margin-top:8px;display:none}
+.asset-preview.show{display:block}
+.audio-preview{width:100%;margin-top:8px;display:none}
+.audio-preview.show{display:block}
+.slot-type-icon{font-size:18px;margin-right:4px}
+.media-input-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.media-input-row input{flex:1;min-width:180px}
+.tool-link{font-size:11px;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:4px}
+.tool-link:hover{text-decoration:underline}
+.mc-options{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.mc-opt{display:flex;align-items:center;gap:6px}
+.mc-opt label{font-size:11px;color:var(--muted);width:20px;flex-shrink:0}
+.mc-opt input{flex:1}
+.correct-answer-sel{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.correct-opt{padding:4px 10px;border-radius:4px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:#fff}
+.correct-opt.selected{background:var(--blue);color:#fff;border-color:var(--blue)}
+
 </style>
 </head>
 <body>
@@ -979,7 +1005,9 @@ async function generateQuiz(templateKey) {
                   <tr style="${s.type==='freebie'?'background:#fffbeb':s.type==='gambler'?'background:#fef2f2':['bonus_1','bonus_ht'].includes(s.type)?'background:#f0fdf4':''}">
                     <td style="font-family:monospace;font-size:11px;font-weight:700;color:var(--muted)">${s.slot}</td>
                     <td style="white-space:nowrap"><span class="badge ${typeBadge(s.type)}">${s.label}</span></td>
-                    <td style="font-size:12px">${(s.q.question||'').substring(0,80)}${(s.q.question||'').length>80?'…':''}</td>
+                    <td style="font-size:12px">
+                      ${isSpecialty(s.type) ? renderSlotAssign(s) : ((s.q.question||'').substring(0,80)+(s.q.question||'').length>80?'…':'')}
+                    </td>
                     <td style="color:var(--blue);font-weight:600;white-space:nowrap;font-size:12px">${s.q.answer||'—'}</td>
                     <td><span class="badge bgr" style="font-size:10px">${(s.q.category||'—').substring(0,15)}</span></td>
                     <td style="font-weight:700;color:${s.pts==='wager'?'var(--red)':s.pts>1?'var(--green)':'var(--text)'}">${s.pts}</td>
@@ -1011,6 +1039,230 @@ async function savePackToEvent(pack, eventCode) {
   }));
   const r = await fetch(SB+'/kbt_quiz',{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rows)});
   return r.ok ? `✓ 32-question pack saved to event "${eventCode}"` : '⚠ Save failed';
+}
+
+
+// ── SLOT ASSIGNMENT ──────────────────────────────────────────────────
+const SPECIALTY_TYPES = new Set(['brain','brand','face_morph','ghost_actors','linked_pics',
+  'song_lyrics','soundmash','anagram','word_puzzle','maths','50-50','multiple_choice',
+  'map_pins','crack_the_code','guess_the_year','bonus_1','bonus_ht','gambler']);
+
+// Which slots need media uploaded vs text-only
+const MEDIA_SLOTS = new Set(['brain','brand','face_morph','ghost_actors','linked_pics','soundmash','map_pins']);
+const AUDIO_SLOTS = new Set(['soundmash','song_lyrics']);
+const TOOL_MAP = {
+  face_morph:   '/face-morph-tool',
+  ghost_actors: '/ghost-actors-tool',
+  linked_pics:  '/linked-pics-tool',
+  brain:        '/brain-tool',
+  brand:        '/brand-tool',
+  soundmash:    '/soundmash-tool',
+  crack_the_code:'/crack-the-code-tool',
+};
+const SLOT_ICONS = {
+  brain:'🧠', brand:'®️', face_morph:'👤', ghost_actors:'👻', linked_pics:'🖼',
+  soundmash:'🎵', song_lyrics:'🎤', anagram:'🔤', word_puzzle:'🔤', maths:'🔢',
+  '50-50':'⚖️', multiple_choice:'📋', map_pins:'🌍', crack_the_code:'🔐',
+  guess_the_year:'📅', bonus_1:'🎯', bonus_ht:'🪙', gambler:'🎲',
+};
+
+// Stored slot data (slot -> {question, answer, asset_url, options, correct})
+window._packSlots = {};
+
+function isSpecialty(type) {
+  return SPECIALTY_TYPES.has(type);
+}
+
+function renderSlotAssign(s) {
+  const stored = window._packSlots[s.slot] || {};
+  const isDone = stored.question || stored.asset_url;
+  const icon = SLOT_ICONS[s.type] || '❓';
+  const preview = stored.asset_url ? `<img src="${stored.asset_url}" style="max-width:80px;max-height:48px;border-radius:4px;vertical-align:middle;margin-left:6px">` : '';
+  const qPreview = stored.question ? `<span style="font-size:11px;color:var(--text2)">${stored.question.substring(0,60)}</span>` : `<span style="font-size:11px;color:var(--muted)">${s.q?.question?.substring(0,50)||'No question set'}…</span>`;
+  return `
+    <div>
+      ${qPreview}${preview}
+      <br>
+      <button class="slot-assign-btn ${isDone?'done':''}" onclick="openSlotPanel('${s.slot}','${s.type}',${s.pts==='wager'?0:s.pts})">
+        ${icon} ${isDone?'✓ Assigned':'Assign'}
+      </button>
+      <div class="slot-panel" id="panel-${s.slot}"></div>
+    </div>`;
+}
+
+function openSlotPanel(slot, type, pts) {
+  const panel = document.getElementById('panel-'+slot);
+  if (!panel) return;
+  if (panel.classList.contains('open')) { panel.classList.remove('open'); return; }
+  panel.classList.add('open');
+  const stored = window._packSlots[slot] || {};
+  const toolLink = TOOL_MAP[type] ? `<a href="${TOOL_MAP[type]}" target="_blank" class="tool-link">🔗 Open ${type.replace(/_/g,' ')} tool</a>` : '';
+  const icon = SLOT_ICONS[type] || '❓';
+
+  let inner = `<div class="slot-panel-head">${icon} ${slot} — ${type.replace(/_/g,' ').toUpperCase()}</div>`;
+
+  if (type === 'multiple_choice' || type === '50-50') {
+    const numOpts = type === '50-50' ? 2 : 4;
+    const opts = ['A','B','C','D'].slice(0,numOpts);
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Question</label>
+        <input id="sp-q-${slot}" value="${stored.question||''}" placeholder="Question text">
+      </div>
+      <div class="mc-options">
+        ${opts.map(o=>`<div class="mc-opt"><label>${o}</label><input id="sp-opt-${slot}-${o}" value="${stored['opt_'+o]||''}" placeholder="Option ${o}"></div>`).join('')}
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);margin-bottom:4px">Correct answer:</div>
+      <div class="correct-answer-sel">
+        ${opts.map(o=>`<div class="correct-opt ${stored.correct===o?'selected':''}" onclick="selectCorrect('${slot}','${o}',this)">${o}</div>`).join('')}
+      </div>`;
+  } else if (type === 'maths') {
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Maths Question</label>
+        <textarea id="sp-q-${slot}" rows="2" placeholder="e.g. If a train leaves at 9am...">${stored.question||''}</textarea>
+      </div>
+      <div class="fg"><label>Numerical Answer</label>
+        <input id="sp-a-${slot}" value="${stored.answer||''}" placeholder="e.g. 42">
+      </div>`;
+  } else if (type === 'anagram' || type === 'word_puzzle') {
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Scrambled / Puzzle Text</label>
+        <input id="sp-q-${slot}" value="${stored.question||''}" placeholder="${type==='anagram'?'e.g. DENE FERVET SENGHOR':'e.g. _ _ E _ _  _ _ _ _ E Y'}">
+      </div>
+      <div class="fg"><label>Answer</label>
+        <input id="sp-a-${slot}" value="${stored.answer||''}" placeholder="e.g. REVENGE OF THE NERDS">
+      </div>
+      <div class="fg" style="margin-top:8px"><label>Category / Context (optional)</label>
+        <input id="sp-ctx-${slot}" value="${stored.context||''}" placeholder="e.g. Name the movie title…">
+      </div>`;
+  } else if (type === 'guess_the_year') {
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Events / Clues (teams guess the year)</label>
+        <textarea id="sp-q-${slot}" rows="3" placeholder="e.g. The movie Titanic is released
+Hong Kong handed back to China
+The Spice Girls top the charts">${stored.question||''}</textarea>
+      </div>
+      <div class="fg"><label>The Year</label>
+        <input id="sp-a-${slot}" value="${stored.answer||''}" placeholder="e.g. 1997">
+      </div>`;
+  } else if (type === 'crack_the_code') {
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Code Words (clues that spell out a famous person)</label>
+        <textarea id="sp-q-${slot}" rows="3" placeholder="e.g. SAND | RA | BULL | LOCK
+(Sandra Bullock)">${stored.question||''}</textarea>
+      </div>
+      <div class="fg"><label>Answer (Famous Person)</label>
+        <input id="sp-a-${slot}" value="${stored.answer||''}" placeholder="e.g. Sandra Bullock">
+      </div>`;
+  } else if (type === 'bonus_1') {
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Bonus Question (closest without going over)</label>
+        <textarea id="sp-q-${slot}" rows="2" placeholder="e.g. How many days between X and Y?">${stored.question||''}</textarea>
+      </div>
+      <div class="fg"><label>Answer / Target Number</label>
+        <input id="sp-a-${slot}" value="${stored.answer||''}" placeholder="e.g. 19,585 days">
+      </div>`;
+  } else if (type === 'gambler') {
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Gambler Question (teams wager their points)</label>
+        <textarea id="sp-q-${slot}" rows="3" placeholder="e.g.
+a song released after 2020?
+a movie that did not win any Oscars at the 2026 ceremony?">${stored.question||''}</textarea>
+      </div>
+      <div class="fg"><label>Answer(s)</label>
+        <textarea id="sp-a-${slot}" rows="2" placeholder="e.g. Yes / No answers">${stored.answer||''}</textarea>
+      </div>`;
+  } else {
+    // Media slots: Brain, Face Morph, Ghost Actors, Linked Pics, Brands, SoundMash, Map Pins, Song Lyrics
+    const isAudio = AUDIO_SLOTS.has(type);
+    const label = isAudio ? 'Audio URL or upload' : 'Image URL or upload';
+    inner += `
+      <div class="fg" style="margin-bottom:8px"><label>Question / Context</label>
+        <input id="sp-q-${slot}" value="${stored.question||''}" placeholder="e.g. Name the actor that links these movies">
+      </div>
+      <div class="fg" style="margin-bottom:8px"><label>Answer</label>
+        <input id="sp-a-${slot}" value="${stored.answer||''}" placeholder="Answer text">
+      </div>
+      <div class="fg">
+        <label>${label}</label>
+        <div class="media-input-row">
+          <input id="sp-url-${slot}" value="${stored.asset_url||''}" placeholder="https://… or upload below" oninput="previewAsset('${slot}','${isAudio}')">
+          <input type="file" accept="${isAudio?'audio/*':'image/*'}" onchange="handleAssetUpload(event,'${slot}','${isAudio}')" style="max-width:140px">
+        </div>
+        ${isAudio
+          ? `<audio id="sp-preview-${slot}" controls class="audio-preview ${stored.asset_url?'show':''}" src="${stored.asset_url||''}"></audio>`
+          : `<img id="sp-preview-${slot}" class="asset-preview ${stored.asset_url?'show':''}" src="${stored.asset_url||''}">`
+        }
+        ${toolLink}
+        ${type === 'linked_pics' ? `<div style="margin-top:10px;font-size:11px;color:var(--muted)">Upload up to 4 images (first one used as asset_url, others as asset_url_2/3/4)</div>` : ''}
+        ${type === 'soundmash' ? `<div style="margin-top:4px;font-size:11px;color:var(--muted)">Two song clips. Add second clip URL here:</div>
+          <input id="sp-url2-${slot}" value="${stored.asset_url_2||''}" placeholder="Second clip URL" style="margin-top:4px">` : ''}
+      </div>`;
+  }
+
+  inner += `
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-blue btn-sm" onclick="saveSlotData('${slot}','${type}')">✓ Save Slot</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearSlot('${slot}')">✗ Clear</button>
+    </div>`;
+
+  panel.innerHTML = inner;
+}
+
+function selectCorrect(slot, opt, el) {
+  el.closest('.correct-answer-sel').querySelectorAll('.correct-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  window._packSlots[slot] = window._packSlots[slot] || {};
+  window._packSlots[slot].correct = opt;
+}
+
+function previewAsset(slot, isAudio) {
+  const url = document.getElementById('sp-url-'+slot)?.value;
+  const preview = document.getElementById('sp-preview-'+slot);
+  if (preview && url) { preview.src = url; preview.classList.add('show'); }
+}
+
+function handleAssetUpload(event, slot, isAudio) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    const inp = document.getElementById('sp-url-'+slot);
+    if (inp) inp.value = url;
+    const preview = document.getElementById('sp-preview-'+slot);
+    if (preview) { preview.src = url; preview.classList.add('show'); }
+    window._packSlots[slot] = window._packSlots[slot] || {};
+    window._packSlots[slot].asset_url = url;
+  };
+  isAudio ? reader.readAsDataURL(file) : reader.readAsDataURL(file);
+}
+
+function saveSlotData(slot, type) {
+  const d = window._packSlots[slot] || {};
+  const q = document.getElementById('sp-q-'+slot)?.value || '';
+  const a = document.getElementById('sp-a-'+slot)?.value || '';
+  const url = document.getElementById('sp-url-'+slot)?.value || '';
+  const url2 = document.getElementById('sp-url2-'+slot)?.value || '';
+  const ctx = document.getElementById('sp-ctx-'+slot)?.value || '';
+  // MC options
+  const opts = {};
+  ['A','B','C','D'].forEach(o => {
+    const el = document.getElementById(`sp-opt-${slot}-${o}`);
+    if (el) opts['opt_'+o] = el.value;
+  });
+  window._packSlots[slot] = { ...d, question:q, answer:a, asset_url:url, asset_url_2:url2, context:ctx, ...opts };
+  // Close panel and update button
+  const panel = document.getElementById('panel-'+slot);
+  if (panel) panel.classList.remove('open');
+  // Mark button as done
+  const btns = document.querySelectorAll(`.slot-assign-btn`);
+  btns.forEach(b => { if (b.getAttribute('onclick')?.includes(`'${slot}'`)) { b.classList.add('done'); b.textContent = '✓ Assigned'; } });
+}
+
+function clearSlot(slot) {
+  window._packSlots[slot] = {};
+  const panel = document.getElementById('panel-'+slot);
+  if (panel) panel.classList.remove('open');
 }
 
 // ── AI FINDER ────────────────────────────────────────────────────────
