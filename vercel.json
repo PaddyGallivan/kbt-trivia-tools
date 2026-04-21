@@ -2,6 +2,22 @@
   "version": 2,
   "routes": [
     {
+      "src": "/live-scoring",
+      "dest": "/live-scoring.html"
+    },
+    {
+      "src": "/live-scoring/",
+      "dest": "/live-scoring.html"
+    },
+    {
+      "src": "/submit",
+      "dest": "/submit.html"
+    },
+    {
+      "src": "/submit/",
+      "dest": "/submit.html"
+    },
+    {
       "src": "/presentation",
       "dest": "/presentation.html"
     },
