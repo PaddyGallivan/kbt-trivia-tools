@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Know Brainer — Tonight's Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:ital,wght@0,400;0,700;0,800;0,900;1,700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#2c94c2;--yellow:#fbc500;--charcoal:#18181b;
+  --slide-bg:#0f0f1a;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Outfit',sans-serif}
+
+/* ── SLIDE WRAPPER ── */
+.slide{
+  position:absolute;inset:0;
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:60px;text-align:center;
+  background:var(--slide-bg);
+  opacity:0;transition:opacity .4s;
+}
+.slide.active{display:flex;opacity:1}
+
+/* ── COMMON ── */
+.logo-text{font-family:'Fira Sans Condensed',sans-serif;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#fff}
+.logo-text span{color:var(--yellow)}
+.slide-label{font-size:14px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px}
+.big-title{font-family:'Fira Sans Condensed',sans-serif;font-weight:900;color:#fff;line-height:1.05}
+.sub-text{color:rgba(255,255,255,.6);line-height:1.5}
+
+/* ── SLIDE 1: WELCOME ── */
+#slide-welcome{
+  background:radial-gradient(ellipse at 50% 40%, #1a1a3e 0%, #0f0f1a 70%);
+}
+#slide-welcome .logo-text{font-size:clamp(60px,8vw,110px)}
+#slide-welcome .tagline{font-size:clamp(16px,2.5vw,28px);color:rgba(255,255,255,.5);margin-top:12px;letter-spacing:.08em}
+#slide-welcome .venue-name{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(18px,2.5vw,32px);color:var(--yellow);margin-top:40px;font-weight:700;letter-spacing:.1em}
+#slide-welcome .date-text{font-size:clamp(14px,1.8vw,22px);color:rgba(255,255,255,.4);margin-top:8px}
+
+/* ── SLIDE 2: QR REGISTER ── */
+#slide-qr{background:radial-gradient(ellipse at 60% 50%, #1a2a3e 0%, #0f0f1a 70%)}
+.qr-layout{display:flex;align-items:center;gap:clamp(40px,6vw,100px);flex-wrap:wrap;justify-content:center}
+.qr-card{background:#fff;border-radius:20px;padding:clamp(16px,2.5vw,32px);flex-shrink:0}
+#qr-canvas{display:block;width:clamp(180px,22vw,280px)!important;height:clamp(180px,22vw,280px)!important}
+.qr-info{text-align:left;max-width:400px}
+.qr-title{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(32px,5vw,64px);font-weight:900;color:#fff;line-height:1;margin-bottom:16px}
+.qr-title span{color:var(--yellow)}
+.qr-step{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.qr-step-num{width:clamp(32px,4vw,44px);height:clamp(32px,4vw,44px);border-radius:50%;background:var(--blue);color:#fff;font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(16px,2.5vw,26px);font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qr-step-text{font-size:clamp(14px,1.8vw,22px);color:rgba(255,255,255,.8)}
+.qr-url{margin-top:20px;font-size:clamp(11px,1.3vw,16px);color:rgba(255,255,255,.3);font-family:monospace}
+.team-count{margin-top:16px;font-size:clamp(13px,1.5vw,18px);color:var(--yellow);font-weight:600}
+
+/* ── SLIDE 3: ROUND INTRO ── */
+#slide-round{background:linear-gradient(135deg,#1a0a2e 0%,#0f1a2e 100%)}
+.round-num{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(120px,18vw,220px);font-weight:900;color:rgba(255,255,255,.05);position:absolute;line-height:1}
+.round-label{font-size:clamp(14px,2vw,22px);font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;position:relative}
+.round-title{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(48px,7vw,96px);font-weight:900;color:#fff;position:relative;margin-bottom:12px}
+.round-cat{font-size:clamp(16px,2.2vw,28px);color:rgba(255,255,255,.5);position:relative}
+
+/* ── SLIDE 4: QUESTION ── */
+#slide-question{background:#0f1520}
+.q-header{display:flex;justify-content:space-between;align-items:center;width:100%;position:absolute;top:28px;left:0;padding:0 48px}
+.q-num{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(20px,2.5vw,28px);color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.05em}
+.q-category{font-size:clamp(11px,1.4vw,16px);font-weight:600;background:rgba(44,148,194,.2);color:var(--blue);padding:4px 14px;border-radius:20px;letter-spacing:.05em}
+.q-points{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(16px,2vw,22px);color:var(--yellow);font-weight:700}
+.question-text{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(28px,5vw,72px);font-weight:800;color:#fff;line-height:1.15;max-width:900px;padding-top:40px}
+.question-image{max-width:60vw;max-height:45vh;border-radius:16px;margin-bottom:24px;object-fit:contain}
+.answer-box{background:var(--yellow);border-radius:12px;padding:clamp(12px,2vw,24px) clamp(20px,4vw,48px);margin-top:32px;display:none}
+.answer-box.show{display:block}
+.answer-label{font-size:clamp(10px,1.3vw,14px);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:4px}
+.answer-text{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(24px,4vw,60px);font-weight:900;color:var(--charcoal)}
+.fun-fact-box{margin-top:16px;font-size:clamp(12px,1.5vw,18px);color:rgba(255,255,255,.5);max-width:700px;display:none}
+.fun-fact-box.show{display:block}
+
+/* ── SLIDE 5: LEADERBOARD ── */
+#slide-leaderboard{background:linear-gradient(135deg,#0f1a0f 0%,#0f0f1a 100%)}
+.lb-title{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(36px,5vw,64px);font-weight:900;color:#fff;margin-bottom:32px}
+.lb-list{width:100%;max-width:700px}
+.lb-row{display:flex;align-items:center;gap:16px;padding:clamp(10px,1.5vw,16px) clamp(16px,2.5vw,24px);border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.04)}
+.lb-row.first{background:rgba(251,197,0,.12);border:1px solid rgba(251,197,0,.3)}
+.lb-row.second{background:rgba(180,180,180,.08)}
+.lb-row.third{background:rgba(180,100,0,.08)}
+.lb-pos{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(20px,2.5vw,32px);font-weight:900;color:rgba(255,255,255,.3);width:40px;flex-shrink:0}
+.lb-row.first .lb-pos{color:var(--yellow)}
+.lb-emoji{font-size:clamp(20px,2.5vw,28px)}
+.lb-name{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(18px,2.2vw,28px);font-weight:700;color:#fff;flex:1;text-align:left}
+.lb-score{font-family:'Fira Sans Condensed',sans-serif;font-size:clamp(22px,3vw,36px);font-weight:900;color:var(--yellow)}
+
+/* ── CONTROLS (bottom bar, hidden in presentation) ── */
+.controls{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,.9);backdrop-filter:blur(10px);
+  padding:12px 20px;display:flex;align-items:center;gap:10px;
+  border-top:1px solid rgba(255,255,255,.1);
+  transition:transform .3s;z-index:100;
+}
+.controls.hidden{transform:translateY(100%)}
+.ctrl-btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;transition:.15s}
+.ctrl-prev{background:rgba(255,255,255,.1);color:#fff}
+.ctrl-prev:hover{background:rgba(255,255,255,.2)}
+.ctrl-next{background:var(--blue);color:#fff}
+.ctrl-next:hover{background:#2271a3}
+.ctrl-answer{background:var(--yellow);color:#18181b}
+.ctrl-answer:hover{background:#e6b400}
+.ctrl-info{font-size:12px;color:rgba(255,255,255,.4);flex:1;text-align:center}
+.ctrl-hide{background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:20px;padding:4px 8px}
+.ctrl-hide:hover{color:#fff}
+
+/* Progress dots */
+.dots{display:flex;gap:6px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2)}
+.dot.active{background:var(--blue);width:20px;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: WELCOME -->
+<div class="slide active" id="slide-welcome">
+  <div class="logo-text">KNOW<span>BRAINER</span></div>
+  <div class="tagline">Trivia. But Better.</div>
+  <div class="venue-name" id="welcome-venue"></div>
+  <div class="date-text" id="welcome-date"></div>
+</div>
+
+<!-- SLIDE 2: QR REGISTER -->
+<div class="slide" id="slide-qr">
+  <div class="qr-layout">
+    <div class="qr-card">
+      <canvas id="qr-canvas"></canvas>
+    </div>
+    <div class="qr-info">
+      <div class="qr-title">Register<br>Your <span>Team</span></div>
+      <div class="qr-step"><div class="qr-step-num">1</div><div class="qr-step-text">Scan the QR code with your phone</div></div>
+      <div class="qr-step"><div class="qr-step-num">2</div><div class="qr-step-text">Enter your team name</div></div>
+      <div class="qr-step"><div class="qr-step-num">3</div><div class="qr-step-text">You're in — answers go through your phone</div></div>
+      <div class="qr-url" id="qr-url-text"></div>
+      <div class="team-count" id="team-count-text">⏳ Waiting for teams…</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: ROUND INTRO -->
+<div class="slide" id="slide-round">
+  <div class="round-num" id="round-bg-num">1</div>
+  <div class="round-label">Round</div>
+  <div class="round-title" id="round-title">Round One</div>
+  <div class="round-cat" id="round-cat">General Knowledge</div>
+</div>
+
+<!-- SLIDE 4: QUESTION -->
+<div class="slide" id="slide-question">
+  <div class="q-header">
+    <div class="q-num" id="q-num-label">Q1</div>
+    <div class="q-category" id="q-cat-label">Category</div>
+    <div class="q-points" id="q-pts-label">1 pt</div>
+  </div>
+  <img id="q-image" class="question-image" style="display:none" src="" alt="">
+  <div class="question-text" id="q-text">Question text goes here</div>
+  <div class="answer-box" id="answer-box">
+    <div class="answer-label">Answer</div>
+    <div class="answer-text" id="answer-text">Answer</div>
+  </div>
+  <div class="fun-fact-box" id="fun-fact-box"></div>
+</div>
+
+<!-- SLIDE 5: LEADERBOARD -->
+<div class="slide" id="slide-leaderboard">
+  <div class="lb-title">🏆 Leaderboard</div>
+  <div class="lb-list" id="lb-list"></div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls" id="controls">
+  <button class="ctrl-btn ctrl-prev" onclick="prevSlide()">← Back</button>
+  <div class="dots" id="dots"></div>
+  <div class="ctrl-info" id="ctrl-info">Welcome</div>
+  <button class="ctrl-btn ctrl-answer" onclick="revealAnswer()" id="btn-reveal" style="display:none">Reveal Answer</button>
+  <button class="ctrl-btn ctrl-next" onclick="nextSlide()">Next →</button>
+  <button class="ctrl-hide" onclick="toggleControls()" title="Hide controls">⌄</button>
+</div>
+
+<script>
+const SB = 'https://huvfgenbcaiicatvtxak.supabase.co/rest/v1';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc';
+const H = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+
+// ── STATE ──────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const eventCode = params.get('code') || localStorage.getItem('kbt_event_code') || 'TONIGHT';
+const ROUND_NAMES = ['One','Two','Three','Four','Five','Six','Seven','Eight'];
+
+let slides = []; // [{type:'welcome'},{type:'qr'},{type:'round',round:1,cat:'Movies'},...{type:'question',q:{}},...{type:'leaderboard'}]
+let currentIdx = 0;
+let controlsHidden = false;
+let teamCountInterval = null;
+
+// ── BUILD SLIDE DECK ────────────────────────────────────────────────
+async function buildDeck() {
+  slides = [{type:'welcome'}, {type:'qr'}];
+
+  // Load event
+  const evRes = await fetch(`${SB}/kbt_event?event_code=eq.${encodeURIComponent(eventCode)}&limit=1&select=id,event_description,event_date,event_location_id`, {headers:H});
+  const evs = await evRes.json();
+  const ev = evs[0];
+
+  // Load location
+  if (ev?.event_location_id) {
+    const locRes = await fetch(`${SB}/kbt_loc?id=eq.${ev.event_location_id}&limit=1&select=loc_fullname,loc_nickname`, {headers:H});
+    const locs = await locRes.json();
+    if (locs[0]) {
+      document.getElementById('welcome-venue').textContent = locs[0].loc_fullname || locs[0].loc_nickname;
+    }
+  }
+
+  if (ev?.event_date) {
+    document.getElementById('welcome-date').textContent =
+      new Date(ev.event_date).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  }
+
+  // Load quiz questions
+  let questions = [];
+  if (ev) {
+    const qRes = await fetch(`${SB}/kbt_quiz?quiz_event_id=eq.${ev.id}&order=quiz_item_round.asc,quiz_item_order.asc&select=quiz_item_round,quiz_item_number,quiz_points,quiz_qtype,quiz_question_id`, {headers:H});
+    const quizItems = await qRes.json();
+
+    if (quizItems.length) {
+      const qids = [...new Set(quizItems.map(q=>q.quiz_question_id).filter(Boolean))];
+      const qdRes = await fetch(`${SB}/kbt_question?id=in.(${qids.join(',')})&select=id,question_question_text,question_answer_text,question_fun_fact,question_question_asset`, {headers:H});
+      const qDetails = await qdRes.json();
+      const qMap = {};
+      qDetails.forEach(q => qMap[q.id] = q);
+      questions = quizItems.map(item => ({ ...item, qd: qMap[item.quiz_question_id] || {} }));
+    }
+  }
+
+  // Fall back to random questions from bank
+  if (!questions.length) {
+    const cats = ['Movies','Music','Sport','Geography & Travel','General Knowledge','Science & Nature'];
+    for (let r = 1; r <= 5; r++) {
+      const cat = cats[r-1];
+      const res = await fetch(`${SB}/questions?status=eq.active&category=eq.${encodeURIComponent(cat)}&order=random()&limit=5&select=id,question,answer,fun_fact,category,points`, {headers:H});
+      const rows = await res.json();
+      rows.forEach((q,i) => questions.push({quiz_item_round:r,quiz_item_number:i+1,quiz_points:q.points||1,quiz_qtype:'standard',qd:{question_question_text:q.question,question_answer_text:q.answer,question_fun_fact:q.fun_fact},cat:q.category}));
+    }
+  }
+
+  // Build round intros + question slides
+  let lastRound = 0;
+  questions.forEach(item => {
+    const round = item.quiz_item_round || 1;
+    if (round !== lastRound) {
+      // Get category from first question of round
+      const cat = item.cat || item.qd?.question_category_group || item.quiz_qtype || 'General Knowledge';
+      slides.push({ type:'round', round, title:`Round ${ROUND_NAMES[round-1]||round}`, cat });
+      lastRound = round;
+    }
+    slides.push({ type:'question', round, num:item.quiz_item_number||1, q:item.qd, pts:item.quiz_points||1, cat:item.cat||item.quiz_qtype||'' });
+  });
+
+  slides.push({ type:'leaderboard' });
+
+  buildDots();
+  showSlide(0);
+}
+
+// ── DOTS ────────────────────────────────────────────────────────────
+function buildDots() {
+  // Just show 5 representative dots
+  const container = document.getElementById('dots');
+  const types = ['welcome','qr','question','question','leaderboard'];
+  container.innerHTML = types.map((_,i) => `<div class="dot" id="dot-${i}"></div>`).join('');
+}
+
+function updateDots() {
+  const pct = currentIdx / Math.max(1, slides.length-1);
+  const dotIdx = Math.round(pct * 4);
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===dotIdx));
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────
+function showSlide(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  currentIdx = idx;
+  const slide = slides[idx];
+
+  // Hide all
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.getElementById('btn-reveal').style.display = 'none';
+  document.getElementById('answer-box').classList.remove('show');
+  document.getElementById('fun-fact-box').classList.remove('show');
+
+  if (slide.type === 'welcome') {
+    document.getElementById('slide-welcome').classList.add('active');
+    document.getElementById('ctrl-info').textContent = 'Welcome';
+  }
+  else if (slide.type === 'qr') {
+    document.getElementById('slide-qr').classList.add('active');
+    document.getElementById('ctrl-info').textContent = 'Registration';
+    generateQR();
+    if (!teamCountInterval) teamCountInterval = setInterval(updateTeamCount, 8000);
+    updateTeamCount();
+  }
+  else if (slide.type === 'round') {
+    document.getElementById('slide-round').classList.add('active');
+    document.getElementById('round-bg-num').textContent = slide.round;
+    document.getElementById('round-title').textContent = slide.title;
+    document.getElementById('round-cat').textContent = slide.cat;
+    document.getElementById('ctrl-info').textContent = slide.title;
+    if (teamCountInterval) { clearInterval(teamCountInterval); teamCountInterval = null; }
+  }
+  else if (slide.type === 'question') {
+    document.getElementById('slide-question').classList.add('active');
+    const q = slide.q;
+    document.getElementById('q-num-label').textContent = `R${slide.round} Q${slide.num}`;
+    document.getElementById('q-cat-label').textContent = slide.cat || '';
+    document.getElementById('q-pts-label').textContent = `${slide.pts} pt${slide.pts>1?'s':''}`;
+    document.getElementById('q-text').textContent = q.question_question_text || 'Question not loaded';
+    document.getElementById('answer-text').textContent = q.question_answer_text || '—';
+    document.getElementById('fun-fact-box').textContent = q.question_fun_fact ? '💡 ' + q.question_fun_fact : '';
+
+    // Image
+    const img = document.getElementById('q-image');
+    if (q.question_question_asset) { img.src = q.question_question_asset; img.style.display='block'; }
+    else img.style.display='none';
+
+    document.getElementById('btn-reveal').style.display = 'block';
+    document.getElementById('ctrl-info').textContent = `R${slide.round} Q${slide.num} of ${slides.filter(s=>s.type==='question'&&s.round===slide.round).length}`;
+  }
+  else if (slide.type === 'leaderboard') {
+    document.getElementById('slide-leaderboard').classList.add('active');
+    document.getElementById('ctrl-info').textContent = 'Leaderboard';
+    loadLeaderboard();
+  }
+
+  updateDots();
+}
+
+function nextSlide() { showSlide(currentIdx + 1); }
+function prevSlide() { showSlide(currentIdx - 1); }
+
+function revealAnswer() {
+  document.getElementById('answer-box').classList.add('show');
+  const ff = document.getElementById('fun-fact-box');
+  if (ff.textContent) ff.classList.add('show');
+  document.getElementById('btn-reveal').style.display = 'none';
+}
+
+function toggleControls() {
+  controlsHidden = !controlsHidden;
+  document.getElementById('controls').classList.toggle('hidden', controlsHidden);
+}
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') {
+    if (document.getElementById('btn-reveal').style.display !== 'none') revealAnswer();
+    else nextSlide();
+    e.preventDefault();
+  }
+  if (e.key === 'ArrowLeft') { prevSlide(); e.preventDefault(); }
+  if (e.key === 'h' || e.key === 'H') toggleControls();
+  if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+});
+
+// ── QR CODE ────────────────────────────────────────────────────────
+function generateQR() {
+  const url = `${location.origin}/player-app?code=${encodeURIComponent(eventCode)}`;
+  document.getElementById('qr-url-text').textContent = url;
+  QRCode.toCanvas(document.getElementById('qr-canvas'), url, {
+    width: 280, margin: 2, color: { dark: '#18181b', light: '#ffffff' }
+  });
+}
+
+async function updateTeamCount() {
+  const r = await fetch(`${SB}/kbt_teams?event_code=eq.${encodeURIComponent(eventCode)}&select=id`, {headers:H});
+  const teams = await r.json();
+  document.getElementById('team-count-text').textContent =
+    teams.length ? `✅ ${teams.length} team${teams.length===1?'':'s'} registered` : '⏳ Waiting for teams…';
+}
+
+// ── LEADERBOARD ────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  const r = await fetch(`${SB}/kbt_teams?event_code=eq.${encodeURIComponent(eventCode)}&order=score.desc,created_at.asc&select=display_name,team_name,team_emoji,score`, {headers:H});
+  const teams = await r.json();
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('lb-list').innerHTML = teams.slice(0,8).map((t,i) => `
+    <div class="lb-row ${i===0?'first':i===1?'second':i===2?'third':''}">
+      <div class="lb-pos">${medals[i]||i+1}</div>
+      <div class="lb-emoji">${t.team_emoji||'🧠'}</div>
+      <div class="lb-name">${t.display_name||t.team_name||'Team'}</div>
+      <div class="lb-score">${t.score||0}</div>
+    </div>`).join('') || '<div style="color:rgba(255,255,255,.3);font-size:18px">No scores yet</div>';
+}
+
+// ── BOOT ────────────────────────────────────────────────────────────
+buildDeck();
+</script>
+</body>
+</html>
