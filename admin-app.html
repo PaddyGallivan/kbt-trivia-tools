@@ -911,6 +911,8 @@ async function generateQuiz(templateKey) {
   const name = document.getElementById('qg-name').value || 'New Quiz';
   const eventCode = document.getElementById('qg-event-code')?.value?.trim();
   const catKey = templateKey || 'standard';
+  const venueId = document.getElementById('qg-venue-id')?.value || '';
+  const usedAtVenue = await getVenueUsedQuestionIds(venueId);
   const catList = TEMPLATE_CATS[catKey] || TEMPLATE_CATS.standard;
 
   document.getElementById('qg-result').innerHTML = '<div class="loading"><span class="spinner"></span>Building 32-question KBT pack…</div>';
@@ -934,12 +936,12 @@ async function generateQuiz(templateKey) {
     }
 
     function pick(type, cat) {
-      // Try specialty pool first
+      // Try specialty pool first, excluding venue repeats
       const sp = specPools[type] || [];
-      for (const q of sp) { if (!used.has(q.id)) { used.add(q.id); return q; } }
+      for (const q of sp) { if (!used.has(q.id) && !usedAtVenue.has(q.id?.toString())) { used.add(q.id); return q; } }
       // Fallback to category pool
       const cp = pools[cat] || pools[allCats[0]] || [];
-      for (const q of cp) { if (!used.has(q.id)) { used.add(q.id); return q; } }
+      for (const q of cp) { if (!used.has(q.id) && !usedAtVenue.has(q.id?.toString())) { used.add(q.id); return q; } }
       // Last resort: any pool
       for (const p of Object.values(pools)) {
         for (const q of p) { if (!used.has(q.id)) { used.add(q.id); return q; } }
@@ -1523,7 +1525,80 @@ async function submitCreatorQ() {
 }
 
 // Add loaders
+
+// ── VENUE REPEAT RULE ─────────────────────────────────────────────────
+async function loadVenueDropdown() {
+  const locs = await db('/kbt_loc?order=loc_fullname.asc&select=id,loc_fullname,loc_nickname');
+  const sel = document.getElementById('qg-venue-id');
+  if (!sel) return;
+  locs.forEach(l => {
+    const o = document.createElement('option');
+    o.value = l.id;
+    o.textContent = l.loc_fullname || l.loc_nickname || l.id;
+    sel.appendChild(o);
+  });
+}
+
+async function getVenueUsedQuestionIds(locId) {
+  if (!locId) return new Set();
+  const rows = await db(`/kbt_question_venue_usage?loc_id=eq.${locId}&select=question_id`);
+  return new Set(rows.map(r => r.question_id?.toString()));
+}
+
+async function markQuestionsUsedAtVenue(questionIds, locId, eventId) {
+  if (!locId || !questionIds.length) return;
+  const rows = questionIds.map(qid => ({
+    question_id: qid, loc_id: locId, event_id: eventId,
+    used_on: new Date().toISOString().split('T')[0], slot: 'quiz'
+  }));
+  await fetch(SB+'/kbt_question_venue_usage', {
+    method: 'POST',
+    headers: {...H, 'Prefer': 'resolution=ignore-duplicates'},
+    body: JSON.stringify(rows)
+  });
+}
+
+// ── HOST EMAIL ─────────────────────────────────────────────────────────
+async function sendHostEmail(eventId, eventCode, hostEmail) {
+  const base = 'https://kbt-trial.vercel.app';
+  const body = {
+    from: 'KBT Admin <noreply@lessonlab.com.au>',
+    to: [hostEmail],
+    subject: `Tonight's Trivia Pack — ${eventCode}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+        <h2 style="font-family:serif;color:#383737">Know Brainer Trivia</h2>
+        <p style="color:#666">Here are your links for tonight's event:</p>
+        <div style="margin:24px 0">
+          <div style="margin-bottom:16px;text-align:center">
+            <div style="width:56px;height:56px;background:#2c94c2;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:24px">📡</div>
+            <a href="${base}/live-scoring?code=${eventCode}" style="color:#2c94c2;font-weight:bold;font-size:16px">${base}/live-scoring?code=${eventCode}</a>
+            <p style="color:#999;font-size:12px;margin-top:4px">Live Scoring</p>
+          </div>
+          <div style="margin-bottom:16px;text-align:center">
+            <div style="width:56px;height:56px;background:#2c94c2;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:24px">🖥</div>
+            <a href="${base}/presentation?code=${eventCode}" style="color:#2c94c2;font-weight:bold;font-size:16px">${base}/presentation?code=${eventCode}</a>
+            <p style="color:#999;font-size:12px;margin-top:4px">Presentation Slides</p>
+          </div>
+          <div style="margin-bottom:16px;text-align:center">
+            <div style="width:56px;height:56px;background:#2c94c2;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:24px">📋</div>
+            <a href="${base}/live-scoring?code=${eventCode}#runsheet" style="color:#2c94c2;font-weight:bold;font-size:16px">${base}/live-scoring?code=${eventCode}</a>
+            <p style="color:#999;font-size:12px;margin-top:4px">Run Sheet</p>
+          </div>
+        </div>
+        <p style="color:#999;font-size:12px">Know Brainer Trivia — kbt-trial.vercel.app</p>
+      </div>`
+  };
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Authorization':'Bearer re_K1LYEyoD_9M43D6k5JUthWGefLvNhKfXV'},
+    body: JSON.stringify(body)
+  });
+  return r.ok;
+}
+
 // ── BOOT ──────────────────────────────────────────────────────────────
+loadVenueDropdown();
 // Load draft count for badge
 dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('draft-badge').textContent=n;});
 </script>
