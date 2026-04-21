@@ -1,7 +1,7 @@
 // Vercel Edge Function — generates KBT quiz PPTX from event data
 import PptxGenJS from 'pptxgenjs';
 
-export const config = { runtime: 'nodejs18.x', maxDuration: 30 };
+export const config = { runtime: 'nodejs', maxDuration: 30 };
 
 const SB = 'https://huvfgenbcaiicatvtxak.supabase.co/rest/v1';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1dmZnZW5iY2FpaWNhdHZ0eGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTczNjIsImV4cCI6MjA5MTE5MzM2Mn0.uTgzTKYjJnkFlRUIhGfW4ODKyV24xOdKaX7lxpDuMfc';
