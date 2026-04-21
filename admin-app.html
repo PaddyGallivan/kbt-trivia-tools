@@ -213,6 +213,9 @@ textarea{resize:vertical;min-height:60px}
     <button class="nav-btn" onclick="go('live-scoring')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Live Scoring
     </button>
+    <button class="nav-btn" onclick="go('qr-slide')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7"/></svg>QR Registration
+    </button>
   </div>
 
   <div class="sidebar-section">
@@ -235,6 +238,12 @@ textarea{resize:vertical;min-height:60px}
     </button>
     <button class="nav-btn" onclick="go('bulk-upload')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Bulk Upload
+    </button>
+    <button class="nav-btn" onclick="go('creator-upload')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Creator Upload
+    </button>
+    <button class="nav-btn" onclick="go('upload-validate')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Upload Validate
     </button>
     <button class="nav-btn" onclick="go('question-review')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Question Review
@@ -273,6 +282,12 @@ textarea{resize:vertical;min-height:60px}
     </button>
     <button class="nav-btn" onclick="go('events')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Events
+    </button>
+    <button class="nav-btn" onclick="go('customers')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Customers
+    </button>
+    <button class="nav-btn" onclick="go('equipment')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Equipment
     </button>
     <button class="nav-btn" onclick="go('members')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Members
@@ -482,6 +497,89 @@ textarea{resize:vertical;min-height:60px}
 <!-- MEMBERS -->
 <div class="section" id="sec-members"><div class="page-head"><h1>Members</h1></div><div class="panel"><div class="panel-body"><div class="empty">Members — coming soon.</div></div></div></div>
 
+
+<!-- QR REGISTRATION SLIDE -->
+<div class="section" id="sec-qr-slide">
+  <div class="page-head">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--muted)"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7"/></svg>
+    <h1>QR Registration</h1>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Generate a Registration Slide</span></div>
+    <div class="panel-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Teams scan this QR code to register. Display it full-screen at the start of the night.</p>
+      <div class="form-row">
+        <div class="fg" style="flex:1"><label>Event Code</label><input id="qr-code-input" placeholder="e.g. TUE-SPOTS-001" oninput="updateQRPreview()"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <button class="btn btn-blue" onclick="openQRSlide()">🖥 Open Full Screen Slide</button>
+        <button class="btn btn-ghost" onclick="copyQRLink()">📋 Copy Join Link</button>
+      </div>
+      <div id="qr-preview" style="background:#0d1117;border-radius:12px;padding:32px;text-align:center;max-width:380px">
+        <div style="font-family:'Fira Sans Condensed',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:1px;text-transform:uppercase">KNOW<span style="color:#fbc500">BRAINER</span></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:16px">Trivia. But Better.</div>
+        <div style="background:#fff;border-radius:12px;padding:16px;display:inline-block;margin-bottom:12px">
+          <canvas id="qr-preview-canvas" width="160" height="160"></canvas>
+        </div>
+        <div id="qr-event-label" style="background:#2c94c2;color:#fff;font-size:13px;font-weight:700;padding:4px 16px;border-radius:4px;display:inline-block">Scan to Register</div>
+        <div id="qr-url-preview" style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Teams Registered <span id="reg-count" style="color:var(--muted);font-weight:400"></span></span>
+      <button class="btn btn-ghost btn-sm" onclick="loadRegistrations()">↻ Refresh</button>
+    </div>
+    <div id="registrations-list"><div class="loading"><span class="spinner"></span></div></div>
+  </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="section" id="sec-customers">
+  <div class="page-head"><h1>Customers</h1></div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Registered Teams <span id="cust-count" style="color:var(--muted);font-weight:400"></span></span></div>
+    <div id="cust-tbl"><div class="loading"><span class="spinner"></span></div></div>
+  </div>
+</div>
+
+<!-- EQUIPMENT -->
+<div class="section" id="sec-equipment">
+  <div class="page-head"><h1>Equipment</h1></div>
+  <div class="panel"><div class="panel-body">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Track tablets, speakers, and other equipment per venue.</p>
+    <div class="empty">Equipment tracking — coming soon.</div>
+  </div></div>
+</div>
+
+<!-- CREATOR UPLOAD -->
+<div class="section" id="sec-creator-upload">
+  <div class="page-head"><h1>Creator Upload</h1></div>
+  <div class="panel"><div class="panel-body">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Submit questions for review. Approved questions go to the question bank.</p>
+    <div class="form-row">
+      <div class="fg" style="flex:2"><label>Question</label><textarea id="cu-q" placeholder="Write your question here…"></textarea></div>
+    </div>
+    <div class="form-row">
+      <div class="fg" style="flex:1"><label>Answer</label><input id="cu-a" placeholder="The answer"></div>
+      <div class="fg" style="flex:1"><label>Category</label><select id="cu-cat"><option>Movies</option><option>Music</option><option>Sport</option><option>Geography & Travel</option><option>History & Politics</option><option>Science & Nature</option><option>General Knowledge</option><option>Australiana</option></select></div>
+      <div class="fg" style="flex:1"><label>Difficulty</label><select id="cu-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+    </div>
+    <div class="fg" style="margin-bottom:14px"><label>Fun Fact (host shares after reveal)</label><input id="cu-fact" placeholder="Optional interesting extra fact"></div>
+    <button class="btn btn-blue" onclick="submitCreatorQ()">Submit for Review</button>
+    <span id="cu-msg" style="margin-left:10px;font-size:12px;color:var(--muted)"></span>
+  </div></div>
+</div>
+
+<!-- UPLOAD VALIDATE -->
+<div class="section" id="sec-upload-validate">
+  <div class="page-head"><h1>Upload Validate</h1></div>
+  <div class="panel"><div class="panel-body">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Run uploaded questions through the fact-check and quality validator before adding to the bank.</p>
+    <div class="empty">Upload Validate — coming soon.</div>
+  </div></div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -496,7 +594,7 @@ async function dbCount(p){const r=await fetch(SB+p,{headers:{...H,'Prefer':'coun
 
 // ── NAV ──────────────────────────────────────────────────────────
 const loaded={};
-const loaders={stats:loadStats,locations:loadLocations,hosts:loadHosts,teams:loadTeams,events:loadEvents,'question-review':loadQR,'ai-finder':null,'live-scoring':loadLiveScoring,'draft-review':loadDrafts};
+const loaders={stats:loadStats,locations:loadLocations,hosts:loadHosts,teams:loadTeams,events:loadEvents,'question-review':loadQR,'ai-finder':null,'live-scoring':loadLiveScoring,'draft-review':loadDrafts,'qr-slide':()=>{updateQRPreview();},'customers':loadCustomers};
 
 function go(id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -807,6 +905,88 @@ async function loadEvents(){
     <tbody>${events.map(e=>`<tr><td>${e.event_date?e.event_date.substring(0,10):'—'}</td><td style="font-size:12px;color:var(--blue)">${e.event_code||(e.event_description||'').substring(0,40)||'—'}</td><td><span class="badge ${e.event_status==='active'?'bg':'bgr'}">${e.event_status||'—'}</span></td></tr>`).join('')}</tbody></table>`;
 }
 
+
+// ── QR SLIDE ────────────────────────────────────────────────────────
+let qrLib = null;
+async function loadQRLib() {
+  if (qrLib) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  qrLib = window.QRCode;
+}
+
+async function updateQRPreview() {
+  await loadQRLib();
+  const code = document.getElementById('qr-code-input').value.trim() || 'TONIGHT';
+  const url = `${location.origin}/player-app?code=${encodeURIComponent(code)}`;
+  document.getElementById('qr-url-preview').textContent = url;
+  document.getElementById('qr-event-label').textContent = code === 'TONIGHT' ? 'Scan to Register' : code;
+  const canvas = document.getElementById('qr-preview-canvas');
+  QRCode.toCanvas(canvas, url, { width: 160, margin: 1, color: { dark: '#18181b', light: '#ffffff' } });
+  loadRegistrations();
+}
+
+function openQRSlide() {
+  const code = document.getElementById('qr-code-input').value.trim() || 'TONIGHT';
+  window.open(`/join?code=${encodeURIComponent(code)}`, '_blank');
+}
+
+function copyQRLink() {
+  const code = document.getElementById('qr-code-input').value.trim() || 'TONIGHT';
+  const url = `${location.origin}/player-app?code=${encodeURIComponent(code)}`;
+  navigator.clipboard.writeText(url).then(() => alert('Join link copied!'));
+}
+
+async function loadRegistrations() {
+  const code = document.getElementById('qr-code-input').value.trim();
+  if (!code) { document.getElementById('registrations-list').innerHTML = '<div class="empty">Enter an event code above</div>'; return; }
+  const rows = await db(`/kbt_teams?event_code=eq.${encodeURIComponent(code)}&order=created_at.asc&select=id,display_name,team_name,team_emoji,created_at`);
+  document.getElementById('reg-count').textContent = `(${rows.length} teams)`;
+  document.getElementById('registrations-list').innerHTML = rows.length ? `<table class="tbl">
+    <thead><tr><th>#</th><th>Team</th><th>Registered</th></tr></thead>
+    <tbody>${rows.map((t,i)=>`<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td>${t.team_emoji||'🧠'} <strong>${t.display_name||t.team_name||'—'}</strong></td>
+      <td style="color:var(--muted)">${t.created_at?new Date(t.created_at).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+    </tr>`).join('')}</tbody></table>`
+    : '<div class="empty" style="padding:20px">No teams registered yet</div>';
+}
+
+// ── CUSTOMERS ────────────────────────────────────────────────────────
+async function loadCustomers() {
+  const rows = await db('/kbt_teams?order=created_at.desc&limit=200&select=id,display_name,team_name,team_emoji,event_code,created_at');
+  document.getElementById('cust-count').textContent = `(${rows.length})`;
+  document.getElementById('cust-tbl').innerHTML = `<table class="tbl">
+    <thead><tr><th>Team</th><th>Event</th><th>Date</th></tr></thead>
+    <tbody>${rows.map(t=>`<tr>
+      <td>${t.team_emoji||'🧠'} ${t.display_name||t.team_name||'—'}</td>
+      <td style="color:var(--blue)">${t.event_code||'—'}</td>
+      <td style="color:var(--muted)">${t.created_at?t.created_at.substring(0,10):'—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ── CREATOR UPLOAD ────────────────────────────────────────────────────
+async function submitCreatorQ() {
+  const q = document.getElementById('cu-q').value.trim();
+  const a = document.getElementById('cu-a').value.trim();
+  if (!q || !a) { document.getElementById('cu-msg').textContent = 'Question and answer required'; return; }
+  const r = await fetch(SB+'/questions', {
+    method:'POST', headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({source:'creator',question:q,answer:a,
+      category:document.getElementById('cu-cat').value,
+      difficulty:document.getElementById('cu-diff').value,
+      fun_fact:document.getElementById('cu-fact').value||null,
+      question_type:'standard',status:'draft',points:1})
+  });
+  if(r.ok){document.getElementById('cu-msg').textContent='✓ Submitted for review';document.getElementById('cu-q').value='';document.getElementById('cu-a').value='';}
+  else document.getElementById('cu-msg').textContent='Error submitting';
+}
+
+// Add loaders
 // ── BOOT ──────────────────────────────────────────────────────────────
 // Load draft count for badge
 dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('draft-badge').textContent=n;});
