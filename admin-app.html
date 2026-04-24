@@ -2208,8 +2208,9 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
       function slideText(slide) {
         let t = '';
         for (const el of (slide.pageElements || [])) {
-          for (const para of (el.shape?.text?.paragraphs || [])) {
-            for (const pe of (para.elements || [])) t += pe.textRun?.content || '';
+          // Slides REST API returns textElements[], not paragraphs[]
+          for (const te of (el.shape?.text?.textElements || [])) {
+            t += te.textRun?.content || '';
           }
         }
         return t;
@@ -2234,7 +2235,7 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
       // DEBUG: log first 3 slides raw to diagnose tag parsing
       tpl.slides.slice(0,3).forEach((s,i) => {
         const t = slideText(s);
-        console.log('[SlideGen][DEBUG] slide'+i+' objectId='+s.objectId+' pageElements='+JSON.stringify((s.pageElements||[]).map(e=>({id:e.objectId,hasShape:!!e.shape,hasText:!!e.shape?.text,text:e.shape?.text?.paragraphs?.[0]?.elements?.[0]?.textRun?.content}))));
+        console.log('[SlideGen][DEBUG] slide'+i+' objectId='+s.objectId+' pageElements='+JSON.stringify((s.pageElements||[]).map(e=>({id:e.objectId,hasShape:!!e.shape,hasText:!!e.shape?.text,text:e.shape?.text?.textElements?.[0]?.textRun?.content}))));
       });
 
       // ── 5. Clone template library ────────────────────────────────────────
