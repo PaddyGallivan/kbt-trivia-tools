@@ -1972,7 +1972,7 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
     return new Promise((res, rej) => {
       gTokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GSLIDES_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file',
+        scope: 'https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive',
         callback: (r) => {
           if (r.error) return rej(r.error);
           gAccessToken = r.access_token;
@@ -2025,50 +2025,11 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
     return rect(slideId, 0, 0, SW, 80000, color);
   }
 
-  const TPL_KEY = 'kbt_tpl_file_id';
-  let templateFileId = localStorage.getItem(TPL_KEY) || '';
-
-  async function ensureTemplate() {
-    // URL-param bypass for automated/programmatic use: ?tpl=DRIVE_FILE_ID
-    const urlTpl = new URLSearchParams(window.location.search).get('tpl');
-    if (urlTpl && !templateFileId) {
-      templateFileId = urlTpl;
-      localStorage.setItem(TPL_KEY, templateFileId);
-      return templateFileId;
-    }
-    if (templateFileId) return templateFileId;
-    const go = confirm('First-time setup: pick the KBT master template (.pptx) to upload to your Drive once. Only needed once.');
-    if (!go) throw new Error('Template setup cancelled');
-    const file = await new Promise((resolve) => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation';
-      input.onchange = e => resolve(e.target.files && e.target.files[0]);
-      input.click();
-    });
-    if (!file) throw new Error('No file selected');
-    const token = await getGToken();
-    const metadata = { name: 'KBT Master Template', mimeType: 'application/vnd.google-apps.presentation' };
-    const boundary = 'kbt_' + Date.now();
-    const body = new Blob([
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,
-      JSON.stringify(metadata),
-      `\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation\r\n\r\n`,
-      file,
-      `\r\n--${boundary}--`
-    ]);
-    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body
-    });
-    if (!res.ok) throw new Error('Template upload failed: ' + await res.text());
-    const data = await res.json();
-    templateFileId = data.id;
-    localStorage.setItem(TPL_KEY, templateFileId);
-    alert('Master template uploaded to your Drive. File ID: ' + templateFileId);
-    return templateFileId;
-  }
+  // ── Slide Gen: Type-Library Assembly ────────────────────────────────────────
+  // Template library in Drive — each question type has its own Q+A slide pair
+  // tagged with [type:question[TypeName]] and [type:answer[TypeName]].
+  // This function dynamically assembles a full KBT deck from those type slides.
+  const TEMPLATE_LIBRARY_ID = '1LCJH_3CHoLTWUZ1BAkSjGc-34nMLoNYZQbLP0rep1LQ';
 
   async function generateGoogleSlides() {
     const code = document.getElementById('sg-event-code').value.trim();
@@ -2076,94 +2037,121 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
     const btn = document.getElementById('sg-gslides-btn');
     const msg = document.getElementById('sg-msg');
     btn.disabled = true;
-    btn.textContent = '\u23F3 Connecting Google...';
     msg.textContent = '';
 
     try {
+      btn.textContent = '\u23F3 Connecting Google...';
       const token = await getGToken();
-      btn.textContent = '\u23F3 Checking template...';
-      const tplId = await ensureTemplate();
 
-      btn.textContent = '\u23F3 Fetching event data...';
+      // ── 1. Fetch event ──────────────────────────────────────────────────
+      btn.textContent = '\u23F3 Fetching event...';
       let event = null;
-      const isNumeric = /^\d+$/.test(code);
-      if (isNumeric) {
-        const byId = await dbFetch(`kbt_event?id=eq.${code}&limit=1&select=id,event_date,event_description,event_location_id`);
-        if (byId.length) event = byId[0];
+      if (/^\d+$/.test(code)) {
+        const r = await dbFetch(`kbt_event?id=eq.${code}&limit=1&select=id,event_date,event_description,event_location_id`);
+        if (r.length) event = r[0];
       }
       if (!event) {
-        const byCode = await dbFetch(`kbt_event?event_code=eq.${encodeURIComponent(code)}&limit=1&select=id,event_date,event_description,event_location_id`);
-        if (byCode.length) event = byCode[0];
+        const r = await dbFetch(`kbt_event?event_code=eq.${encodeURIComponent(code)}&limit=1&select=id,event_date,event_description,event_location_id`);
+        if (r.length) event = r[0];
       }
       if (!event) {
-        const byDesc = await dbFetch(`kbt_event?event_description=ilike.*${encodeURIComponent(code)}*&order=event_date.desc&limit=1&select=id,event_date,event_description,event_location_id`);
-        if (byDesc.length) event = byDesc[0];
+        const r = await dbFetch(`kbt_event?event_description=ilike.*${encodeURIComponent(code)}*&order=event_date.desc&limit=1&select=id,event_date,event_description,event_location_id`);
+        if (r.length) event = r[0];
       }
       if (!event) throw new Error(`No event found for: "${code}"`);
 
-      let venue = event.event_description || 'KBT Trivia';
-      let timeStr = '7:00 PM';
+      // ── 2. Fetch location details ───────────────────────────────────────
+      let locName = event.event_description || 'KBT Trivia';
+      let locTime = '7:00 PM';
+      let locNickname = '';
+      let locPrizes = '';
       if (event.event_location_id) {
-        const [loc] = await dbFetch(`kbt_loc?id=eq.${event.event_location_id}&select=loc_fullname,loc_time`);
-        if (loc) { venue = loc.loc_fullname || venue; timeStr = loc.loc_time || timeStr; }
+        const [loc] = await dbFetch(`kbt_loc?id=eq.${event.event_location_id}&select=loc_fullname,loc_time,loc_nickname,loc_prizes`);
+        if (loc) {
+          locName = loc.loc_fullname || locName;
+          locTime = loc.loc_time || locTime;
+          locNickname = loc.loc_nickname || '';
+          locPrizes = loc.loc_prizes || '';
+        }
       }
 
-      const quiz = await dbFetch(`kbt_quiz?quiz_event_id=eq.${event.id}&order=quiz_item_round.asc,quiz_item_order.asc&select=quiz_item_round,quiz_item_number,quiz_points,quiz_qtype,quiz_question_id`);
-      const qids = [...new Set(quiz.map(s=>s.quiz_question_id).filter(Boolean))].slice(0,80);
-      let qMap = {};
+      // ── 3. Fetch quiz slots + questions ─────────────────────────────────
+      const quiz = await dbFetch(
+        `kbt_quiz?quiz_event_id=eq.${event.id}` +
+        `&order=quiz_item_round.asc,quiz_item_order.asc` +
+        `&select=quiz_item_round,quiz_item_number,quiz_item_order,quiz_qtype,quiz_question_id`
+      );
+      const qids = [...new Set(quiz.map(s => s.quiz_question_id).filter(Boolean))];
+      const qMap = {};
       if (qids.length) {
-        const qs = await dbFetch(`kbt_question?id=in.(${qids.join(',')})&select=id,question_question_text,question_answer_text,question_fun_fact`);
+        const qs = await dbFetch(
+          `kbt_question?id=in.(${qids.join(',')})` +
+          `&select=id,question_question_text,question_answer_text,question_supporttext,question_answer_supporttext`
+        );
         qs.forEach(q => qMap[q.id] = q);
       }
 
-      btn.textContent = '\u23F3 Cloning master template...';
-      const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${tplId}/copy`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: `KBT \u2014 ${venue} (${event.event_date})` })
+      // ── 4. Read template library — build type → slideId maps ────────────
+      btn.textContent = '\u23F3 Reading template library...';
+      const tplRes = await fetch(`https://slides.googleapis.com/v1/presentations/${TEMPLATE_LIBRARY_ID}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
       });
-      if (!copyRes.ok) throw new Error('Copy failed: ' + await copyRes.text());
-      const copy = await copyRes.json();
-      const presId = copy.id;
+      if (!tplRes.ok) throw new Error('Template read failed: ' + await tplRes.text());
+      const tpl = await tplRes.json();
 
-      btn.textContent = '\u23F3 Filling placeholders...';
-      const reqs = [];
-      const repl = (tok, val) => reqs.push({ replaceAllText: { containsText: { text: tok, matchCase: true }, replaceText: String(val == null ? '' : val) } });
-      repl('{{VENUE}}', venue);
-      repl('{{DATE}}', event.event_date);
-      repl('{{TIME}}', timeStr);
-      repl('{{EVENT_DESC}}', event.event_description || '');
-      repl('{{EVENT_ID}}', event.id);
-      repl('{{LOC_ID}}', event.event_location_id || '');
-      repl('{{DATE_GENERATED}}', new Date().toISOString().slice(0,10));
-      for (const slot of quiz) {
-        const slotKey = `R${slot.quiz_item_round}Q${slot.quiz_item_number}`;
-        const q = qMap[slot.quiz_question_id] || {};
-        repl(`{{${slotKey}_Q}}`, q.question_question_text || '');
-        repl(`{{${slotKey}_A}}`, q.question_answer_text || '');
+      const typeQSlide = {};   // typeName → template slideObjectId (question)
+      const typeASlide = {};   // typeName → template slideObjectId (answer)
+      let firstQAIndex = -1;  // index of first type-tagged slide in template
+
+      function slideText(slide) {
+        let t = '';
+        for (const el of (slide.pageElements || [])) {
+          for (const para of (el.shape?.text?.paragraphs || [])) {
+            for (const pe of (para.elements || [])) t += pe.textRun?.content || '';
+          }
+        }
+        return t;
       }
 
-      const batchRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
+      tpl.slides.forEach((slide, idx) => {
+        const text = slideText(slide);
+        const qm = text.match(/\[type:question\[([^\]]+)\]\]/);
+        const am = text.match(/\[type:answer\[([^\]]+)\]\]/);
+        if (qm) {
+          typeQSlide[qm[1]] = slide.objectId;
+          if (firstQAIndex === -1) firstQAIndex = idx;
+        } else if (am) {
+          typeASlide[am[1]] = slide.objectId;
+          if (firstQAIndex === -1) firstQAIndex = idx;
+        }
+      });
+
+      if (firstQAIndex === -1) firstQAIndex = 0;
+      const allTypeIds = new Set([...Object.values(typeQSlide), ...Object.values(typeASlide)]);
+      console.log('[SlideGen] Types found:', Object.keys(typeQSlide), '| firstQAIndex:', firstQAIndex);
+
+      // ── 5. Clone template library ────────────────────────────────────────
+      btn.textContent = '\u23F3 Cloning template...';
+      const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${TEMPLATE_LIBRARY_ID}/copy`, {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests: reqs })
+        body: JSON.stringify({ name: `KBT \u2014 ${locName} (${event.event_date})` })
       });
-      if (!batchRes.ok) throw new Error('Batch update failed: ' + await batchRes.text());
+      if (!copyRes.ok) throw new Error('Clone failed: ' + await copyRes.text());
+      const cloned = await copyRes.json();
+      const presId = cloned.id;
 
-      document.getElementById('gslides-present-link').href = `https://docs.google.com/presentation/d/${presId}/present`;
-      document.getElementById('gslides-edit-link').href = `https://docs.google.com/presentation/d/${presId}/edit`;
-      document.getElementById('gslides-result').style.display = 'block';
-      btn.textContent = `\u2705 Done \u2014 cloned from master`;
-      msg.textContent = venue;
-    } catch(e) {
-      console.error(e);
-      alert('Error: ' + e.message);
-      btn.textContent = '\uD83C\uDFAF Generate Google Slides';
-      btn.disabled = false;
-      gAccessToken = null;
-    }
-  }
+      // ── 6. Read cloned presentation — map old IDs → new IDs ─────────────
+      btn.textContent = '\u23F3 Mapping cloned slides...';
+      const clRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!clRes.ok) throw new Error('Read clone failed: ' + await clRes.text());
+      const clPres = await clRes.json();
 
-</script>
-</body>
-</html>
+      // Slides are in same order after copy, just with new object IDs
+      const oldToNew = {};
+      tpl.slides.forEach((s, i) => { oldToNew[s.objectId] = clPres.slides[i]?.objectId; });
+
+      const clTypeQSlide = {};
+      const clTypeASli
