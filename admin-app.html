@@ -704,6 +704,7 @@ textarea{resize:vertical;min-height:60px}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-blue" onclick="generatePPTX()" id="sg-btn">📥 Download PPTX</button>
         <button class="btn btn-blue" onclick="generateGoogleSlides()" id="sg-gslides-btn" style="background:#1DAFF1">🎯 Generate Google Slides</button>
+        <button class="btn" onclick="createTemplateLibrary()" id="sg-setup-btn" style="background:#6b7280;color:#fff;font-size:11px">⚙ Setup Template Library</button>
         <span id="sg-msg" style="font-size:12px;color:var(--muted)"></span>
       </div>
       <div id="gslides-result" style="display:none;margin-top:12px;padding:14px;background:var(--surface2);border-radius:8px;text-align:center;">
@@ -2032,7 +2033,104 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
   // Template library in Drive — each question type has its own Q+A slide pair
   // tagged with [type:question[TypeName]] and [type:answer[TypeName]].
   // This function dynamically assembles a full KBT deck from those type slides.
-  const TEMPLATE_LIBRARY_ID = '1LCJH_3CHoLTWUZ1BAkSjGc-34nMLoNYZQbLP0rep1LQ';
+  let TEMPLATE_LIBRARY_ID = '1LCJH_3CHoLTWUZ1BAkSjGc-34nMLoNYZQbLP0rep1LQ';
+
+  async function createTemplateLibrary() {
+    const btn = document.getElementById('sg-setup-btn');
+    const msg = document.getElementById('sg-msg');
+    btn.textContent = '\u23F3 Creating template...';
+    btn.disabled = true;
+    try {
+      const token = await getGToken();
+
+      const TYPES = [
+        'Classic','Multiple Choice','Bonus H&T','Bonus 1','Follower Freebie',
+        'Name The Brain','Word Puzzle','Maths','50-50','Map Pins',
+        'Song Lyrics','Anagram','Brands','Face Morph','Ghost Actors',
+        'Guess The Year','Crack The Code','Linked Pics','SoundMash','Gambler Pairs'
+      ];
+
+      // 1. Create blank presentation
+      const createRes = await fetch('https://slides.googleapis.com/v1/presentations', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'KBT Template Library v1' })
+      });
+      if (!createRes.ok) throw new Error('Create failed: ' + await createRes.text());
+      const pres = await createRes.json();
+      const presId = pres.presentationId;
+      const defaultSlideId = pres.slides[0].objectId;
+
+      // 2. Build batch: insert slides + add type-tagged text boxes + placeholder text
+      const requests = [];
+      TYPES.forEach((type, i) => {
+        const safe = type.replace(/[^a-zA-Z0-9]/g, '_');
+        const qId = 'tq_' + safe;
+        const aId = 'ta_' + safe;
+
+        // Insert Q slide and A slide in order
+        requests.push({ insertSlide: { insertionIndex: i*2+1, objectId: qId } });
+        requests.push({ insertSlide: { insertionIndex: i*2+2, objectId: aId } });
+
+        // Q slide — type tag (small, top-left corner) + question placeholders
+        requests.push({ createShape: { objectId: 'tqtag_'+safe, shapeType: 'TEXT_BOX',
+          elementProperties: { pageObjectId: qId,
+            size: { width:{magnitude:420,unit:'PT'}, height:{magnitude:18,unit:'PT'} },
+            transform: { scaleX:1, scaleY:1, translateX:5, translateY:5, unit:'PT' }
+          }}});
+        requests.push({ insertText: { objectId: 'tqtag_'+safe, insertionIndex:0,
+          text: '[type:question['+type+']]' } });
+
+        requests.push({ createShape: { objectId: 'tqtxt_'+safe, shapeType: 'TEXT_BOX',
+          elementProperties: { pageObjectId: qId,
+            size: { width:{magnitude:600,unit:'PT'}, height:{magnitude:280,unit:'PT'} },
+            transform: { scaleX:1, scaleY:1, translateX:50, translateY:60, unit:'PT' }
+          }}});
+        requests.push({ insertText: { objectId: 'tqtxt_'+safe, insertionIndex:0,
+          text: '[question_text]\n\n[question_supporttext]\n\nRound [rd] \u00B7 Q[q] \u00B7 [event_location_name] \u00B7 [event_date] \u00B7 [loc_time]' } });
+
+        // A slide — type tag + answer placeholders
+        requests.push({ createShape: { objectId: 'tatag_'+safe, shapeType: 'TEXT_BOX',
+          elementProperties: { pageObjectId: aId,
+            size: { width:{magnitude:420,unit:'PT'}, height:{magnitude:18,unit:'PT'} },
+            transform: { scaleX:1, scaleY:1, translateX:5, translateY:5, unit:'PT' }
+          }}});
+        requests.push({ insertText: { objectId: 'tatag_'+safe, insertionIndex:0,
+          text: '[type:answer['+type+']]' } });
+
+        requests.push({ createShape: { objectId: 'tatxt_'+safe, shapeType: 'TEXT_BOX',
+          elementProperties: { pageObjectId: aId,
+            size: { width:{magnitude:600,unit:'PT'}, height:{magnitude:280,unit:'PT'} },
+            transform: { scaleX:1, scaleY:1, translateX:50, translateY:60, unit:'PT' }
+          }}});
+        requests.push({ insertText: { objectId: 'tatxt_'+safe, insertionIndex:0,
+          text: '[answer_text]\n\n[answer_supporttext]\n\nRound [rd] \u00B7 Q[q] \u00B7 [event_location_name] \u00B7 [event_date]' } });
+      });
+
+      // Delete the default blank slide
+      requests.push({ deleteObject: { objectId: defaultSlideId } });
+
+      // 3. Execute batch
+      const batchRes = await fetch('https://slides.googleapis.com/v1/presentations/'+presId+':batchUpdate', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests })
+      });
+      if (!batchRes.ok) throw new Error('Batch failed: ' + await batchRes.text());
+
+      // 4. Update runtime TEMPLATE_LIBRARY_ID + show link
+      TEMPLATE_LIBRARY_ID = presId;
+      const editUrl = 'https://docs.google.com/presentation/d/'+presId+'/edit';
+      btn.textContent = '\u2705 Template Ready';
+      msg.innerHTML = 'Template: <a href="'+editUrl+'" target="_blank" style="color:#1DAFF1">'+presId+'</a> (ready for this session)';
+      console.log('[TemplateLib] Created:', presId);
+    } catch(e) {
+      console.error('[TemplateLib] Error:', e?.message, e);
+      alert('Template creation error: ' + (e?.message || String(e)));
+      btn.textContent = '\u2699 Setup Template Library';
+      btn.disabled = false;
+    }
+  }
 
   async function generateGoogleSlides() {
     const code = document.getElementById('sg-event-code').value.trim();
@@ -2177,7 +2275,7 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
         slotMeta.push(slot);
       }
 
-      if (!dupReqs.length) throw new Error('No quiz slots found — check event code');
+      if (!dupReqs.length) throw new Error('No type slides found in template library — click Setup to create one, then retry.');
 
       const dupBatchRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
         method: 'POST',
