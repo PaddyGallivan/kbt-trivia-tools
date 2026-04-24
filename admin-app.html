@@ -2069,8 +2069,8 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
         const aId = 'ta_' + safe;
 
         // Insert Q slide and A slide in order
-        requests.push({ insertSlide: { insertionIndex: i*2+1, objectId: qId } });
-        requests.push({ insertSlide: { insertionIndex: i*2+2, objectId: aId } });
+        requests.push({ createSlide: { insertionIndex: i*2+1, objectId: qId, slideLayoutReference:{predefinedLayout:'BLANK'} } });
+        requests.push({ createSlide: { insertionIndex: i*2+2, objectId: aId, slideLayoutReference:{predefinedLayout:'BLANK'} } });
 
         // Q slide — type tag (small, top-left corner) + question placeholders
         requests.push({ createShape: { objectId: 'tqtag_'+safe, shapeType: 'TEXT_BOX',
