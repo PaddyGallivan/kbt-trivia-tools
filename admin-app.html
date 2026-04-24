@@ -2154,4 +2154,161 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
       tpl.slides.forEach((s, i) => { oldToNew[s.objectId] = clPres.slides[i]?.objectId; });
 
       const clTypeQSlide = {};
-      const clTypeASli
+      const clTypeASlide = {};
+      for (const [t, id] of Object.entries(typeQSlide)) clTypeQSlide[t] = oldToNew[id];
+      for (const [t, id] of Object.entries(typeASlide)) clTypeASlide[t] = oldToNew[id];
+      const clOriginalTypeIds = [...allTypeIds].map(id => oldToNew[id]).filter(Boolean);
+
+      // ── 7. Duplicate Q+A slides for each quiz slot ──────────────────────
+      btn.textContent = '\u23F3 Building quiz slides...';
+      const dupReqs = [];
+      const slotMeta = [];
+
+      for (const slot of quiz) {
+        const type = slot.quiz_qtype || 'Classic';
+        const qId = clTypeQSlide[type] || clTypeQSlide['Classic'];
+        const aId = clTypeASlide[type] || clTypeASlide['Classic'];
+        if (!qId || !aId) { console.warn('[SlideGen] No slide for type:', type); continue; }
+        dupReqs.push({ duplicateObject: { objectId: qId } });
+        dupReqs.push({ duplicateObject: { objectId: aId } });
+        slotMeta.push(slot);
+      }
+
+      if (!dupReqs.length) throw new Error('No quiz slots found — check event code');
+
+      const dupBatchRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: dupReqs })
+      });
+      if (!dupBatchRes.ok) throw new Error('Duplicate failed: ' + await dupBatchRes.text());
+      const dupData = await dupBatchRes.json();
+      const dupReplies = dupData.replies || [];
+
+      // Pair up new slide IDs: reply[i*2] = Q-new, reply[i*2+1] = A-new
+      const newSlidesPairs = [];
+      for (let i = 0; i < slotMeta.length; i++) {
+        const qNewId = dupReplies[i * 2]?.duplicateObject?.objectId;
+        const aNewId = dupReplies[i * 2 + 1]?.duplicateObject?.objectId;
+        if (qNewId && aNewId) newSlidesPairs.push({ qId: qNewId, aId: aNewId, slot: slotMeta[i] });
+      }
+
+      // ── 8. Reposition new slides + delete originals ──────────────────────
+      btn.textContent = '\u23F3 Assembling deck...';
+
+      // Move all new Q+A pairs (in slot order) to start right after the structural intro slides.
+      // Then delete original type template slides — result: [structural...][Q1,A1,Q2,A2,...][structural outro...]
+      const newSlideIds = newSlidesPairs.flatMap(p => [p.qId, p.aId]);
+      const arrangeBatch = [
+        {
+          updateSlidesPosition: {
+            slideObjectIds: newSlideIds,
+            insertionIndex: firstQAIndex
+          }
+        },
+        ...clOriginalTypeIds.map(id => ({ deleteObject: { objectId: id } }))
+      ];
+
+      const arrangeRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: arrangeBatch })
+      });
+      if (!arrangeRes.ok) throw new Error('Arrange failed: ' + await arrangeRes.text());
+
+      // ── 9. Fill placeholders ─────────────────────────────────────────────
+      btn.textContent = '\u23F3 Filling content...';
+
+      const dateGen = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+      const eventDateFmt = event.event_date
+        ? new Date(event.event_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+        : '';
+
+      // Global: structural slide tokens (no pageObjectIds scope = whole deck)
+      const globalReqs = [
+        '[event_location_name]', '[event_date]', '[loc_time]',
+        '[loc_nickname]', '[loc_prizes]', '[location_id]', '[event_id]', '[date_generated]'
+      ].map(tok => ({
+        replaceAllText: {
+          containsText: { text: tok, matchCase: true },
+          replaceText: ({
+            '[event_location_name]': locName,
+            '[event_date]': eventDateFmt,
+            '[loc_time]': locTime,
+            '[loc_nickname]': locNickname,
+            '[loc_prizes]': locPrizes,
+            '[location_id]': String(event.event_location_id || ''),
+            '[event_id]': String(event.id),
+            '[date_generated]': dateGen
+          })[tok] || ''
+        }
+      }));
+
+      // Per-slide: Q+A tokens scoped to each individual slide
+      const perSlideReqs = [];
+      const repl = (pageIds, tok, val) => perSlideReqs.push({
+        replaceAllText: {
+          containsText: { text: tok, matchCase: true },
+          replaceText: String(val == null ? '' : val),
+          pageObjectIds: pageIds
+        }
+      });
+
+      for (const { qId, aId, slot } of newSlidesPairs) {
+        const q = qMap[slot.quiz_question_id] || {};
+        const qText   = q.question_question_text        || '';
+        const aText   = q.question_answer_text          || '';
+        const qSup    = q.question_supporttext          || '';
+        const aSup    = q.question_answer_supporttext   || '';
+        const rd      = String(slot.quiz_item_round     || '');
+        const qn      = String(slot.quiz_item_number    || '');
+
+        // Question slide
+        repl([qId], '[question_text]',        qText);
+        repl([qId], '[question_supporttext]', qSup);
+        repl([qId], '[q]',                    qn);
+        repl([qId], '[rd]',                   rd);
+        repl([qId], '[event_location_name]',  locName);
+        repl([qId], '[event_date]',           eventDateFmt);
+        repl([qId], '[loc_time]',             locTime);
+
+        // Answer slide
+        repl([aId], '[answer_text]',          aText);
+        repl([aId], '[answer_supporttext]',   aSup);
+        repl([aId], '[q]',                    qn);
+        repl([aId], '[rd]',                   rd);
+        repl([aId], '[event_location_name]',  locName);
+        repl([aId], '[event_date]',           eventDateFmt);
+        repl([aId], '[loc_time]',             locTime);
+      }
+
+      // Send fill requests — chunk at 500 to stay inside API limits
+      const fillReqs = [...globalReqs, ...perSlideReqs];
+      const CHUNK = 500;
+      for (let i = 0; i < fillReqs.length; i += CHUNK) {
+        const fillRes = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requests: fillReqs.slice(i, i + CHUNK) })
+        });
+        if (!fillRes.ok) throw new Error('Fill failed (chunk ' + Math.floor(i / CHUNK) + '): ' + await fillRes.text());
+      }
+
+      // ── 10. Show result links ────────────────────────────────────────────
+      document.getElementById('gslides-present-link').href = `https://docs.google.com/presentation/d/${presId}/present`;
+      document.getElementById('gslides-edit-link').href   = `https://docs.google.com/presentation/d/${presId}/edit`;
+      document.getElementById('gslides-result').style.display = 'block';
+      btn.textContent = `\u2705 Done \u2014 ${newSlidesPairs.length} Q+A slides assembled`;
+      msg.textContent = `${locName} \u00B7 ${event.event_date}`;
+
+    } catch(e) {
+      console.error('[SlideGen] Error:', e);
+      alert('Slide Gen error: ' + e.message);
+      btn.textContent = '\uD83C\uDFAF Generate Google Slides';
+      btn.disabled = false;
+      gAccessToken = null;
+    }
+  }
+</script>
+</body>
+</html>
