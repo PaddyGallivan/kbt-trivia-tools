@@ -2416,4 +2416,52 @@ dbCount('/questions?status=eq.draft').then(n=>{if(n>0)document.getElementById('d
         repl([qId], '[question_supporttext]', qSup);
         repl([qId], '[q]',                    qn);
         repl([qId], '[rd]',                   rd);
-        repl([qId], '[event_location_name]',  l
+        repl([qId], '[event_location_name]',  locName);
+        repl([qId], '[event_date]',           eventDateFmt);
+        repl([qId], '[loc_time]',             locTime);
+
+        // Answer slide — also fill [question_text] since some types show it
+        repl([aId], '[answer_text]',          aText);
+        repl([aId], '[answer_supporttext]',   '');
+        repl([aId], '[question_text]',        qText);
+        repl([aId], '[question_supporttext]', qSup);
+        repl([aId], '[q]',                    qn);
+        repl([aId], '[rd]',                   rd);
+        repl([aId], '[event_location_name]',  locName);
+        repl([aId], '[event_date]',           eventDateFmt);
+        repl([aId], '[loc_time]',             locTime);
+      }
+
+      const fillReqs = [...globalReqs, ...perSlideReqs];
+      for (let i = 0; i < fillReqs.length; i += CHUNK) {
+        const r = await fetch(`https://slides.googleapis.com/v1/presentations/${presId}:batchUpdate`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requests: fillReqs.slice(i, i + CHUNK) })
+        });
+        if (!r.ok) throw new Error('Fill failed (chunk ' + Math.floor(i / CHUNK) + '): ' + await r.text());
+      }
+
+      // \u2500\u2500 10. Show result links \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+      document.getElementById('gslides-present-link').href = `https://docs.google.com/presentation/d/${presId}/present`;
+      document.getElementById('gslides-edit-link').href   = `https://docs.google.com/presentation/d/${presId}/edit`;
+      document.getElementById('gslides-result').style.display = 'block';
+      btn.textContent = `\u2705 Done \u2014 ${slideStubs.length} Q+A slides assembled`;
+      msg.textContent = `${locName} \u00B7 ${event.event_date}`;
+
+    } catch(e) {
+      console.error('[SlideGen] Error:', e?.message || String(e), e);
+      alert('Slide Gen error: ' + (e?.message || String(e)));
+      btn.textContent = '\ud83c\udfaf Generate Google Slides';
+      btn.disabled = false;
+    }
+  }
+
+  // On load: activate section from URL hash (e.g. #slide-gen -> go('slide-gen'))
+  (function() {
+    const h = location.hash.replace(/^#/, '');
+    if (h && document.getElementById('sec-' + h)) go(h);
+  })();
+</script>
+</body>
+</html>
